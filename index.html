@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0b09">
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<meta name="apple-mobile-web-app-title" content="D.A.D.">
+<meta name="application-name" content="Notorious D.A.D.">
+<meta name="description" content="Find the nights all five of us can actually make, before the next gig.">
+<meta property="og:title" content="Notorious D.A.D. — Practice Room">
+<meta property="og:description" content="Pick your name, claim your slots, send the code back.">
+<meta property="og:image" content="icon-512.png">
+<title>NOTORIOUS D.A.D. — Practice Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ===================================================================
+   NOTORIOUS D.A.D. — photocopied gig-flyer design system
+   =================================================================== */
+:root{
+  /* ink & paper */
+  --ink:#0b0b09;
+  --ink-soft:#26241d;
+  --paper:#f2eddd;
+  --paper-dim:#ddd7c4;
+  --smudge:#8b8674;
+
+  /* the loud bit */
+  --acid:#e4ff1a;
+  --blood:#ff2d16;
+  --bruise:#6a2bff;
+
+  /* semantic */
+  --go:var(--acid);
+  --maybe:var(--blood);
+  --dead:var(--smudge);
+
+  /* type */
+  --display:'Anton','Haettenschweiler','Impact','Arial Narrow',sans-serif;
+  --heavy:'Archivo Black','Helvetica Neue',sans-serif;
+  --body:'Space Mono',ui-monospace,'Courier New',monospace;
+
+  /* geometry */
+  --edge:3px solid var(--ink);
+  --hard:5px 5px 0 var(--ink);
+  --hard-acid:5px 5px 0 var(--acid);
+  --hard-blood:5px 5px 0 var(--blood);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--ink); color:var(--paper);
+  font-family:var(--body); font-size:14px; line-height:1.5;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+  overflow-x:hidden;
+}
+
+/* --- xerox grain + paper fibre, sits over everything --- */
+#grain{
+  position:fixed; inset:-50%; z-index:9000; pointer-events:none; opacity:.42;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='.55'/></svg>");
+  mix-blend-mode:overlay; animation:jitter .9s steps(2,end) infinite;
+}
+@keyframes jitter{0%{transform:translate(0,0)}50%{transform:translate(-6px,4px)}100%{transform:translate(3px,-5px)}}
+
+/* =================== HEADER =================== */
+header{
+  position:sticky; top:0; z-index:80; background:var(--ink);
+  border-bottom:4px solid var(--acid);
+  padding:calc(9px + env(safe-area-inset-top)) 14px 8px;
+  display:flex; align-items:center; gap:11px;
+}
+header .mark{
+  width:40px;height:40px;flex:0 0 auto;background:var(--acid);color:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:23px;transform:rotate(-4deg);
+  box-shadow:3px 3px 0 var(--blood);
+}
+header .ttl{min-width:0;flex:1}
+header h1{
+  margin:0;font-family:var(--display);font-size:21px;line-height:.95;
+  letter-spacing:.5px;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+header h1 em{font-style:normal;color:var(--acid)}
+header .sub{
+  font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--smudge);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.gear{
+  width:40px;height:40px;flex:0 0 auto;background:transparent;
+  border:2px solid var(--smudge);color:var(--paper);font-size:16px;cursor:pointer;
+}
+.gear:active{background:var(--acid);color:var(--ink)}
+
+/* ticker */
+.ticker{overflow:hidden;background:var(--blood);color:var(--paper);border-bottom:3px solid var(--ink);position:sticky;top:0;z-index:79}
+.ticker div{
+  display:inline-block;white-space:nowrap;padding:5px 0;
+  font-family:var(--heavy);font-size:10px;letter-spacing:2.4px;text-transform:uppercase;
+  animation:roll 22s linear infinite;
+}
+@keyframes roll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+main{max-width:640px;margin:0 auto;padding:16px 13px 30px}
+.view{display:none}.view.on{display:block}
+
+/* =================== REVEALS =================== */
+.rv{opacity:0;transform:translateY(20px) rotate(-1.2deg)}
+.rv.in{opacity:1;transform:none;transition:opacity .5s ease,transform .55s cubic-bezier(.16,1,.3,1)}
+@media (prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none} #grain{animation:none} .ticker div{animation:none}
+}
+
+/* =================== PANELS =================== */
+.panel{
+  background:var(--paper); color:var(--ink); border:var(--edge);
+  box-shadow:var(--hard); padding:15px 14px; margin:0 0 20px;
+  position:relative;
+}
+.panel.tilt{transform:rotate(-.5deg)}
+.panel.tilt2{transform:rotate(.45deg)}
+.panel.dark{background:var(--ink);color:var(--paper);border-color:var(--paper);box-shadow:var(--hard-acid)}
+.panel > h2{
+  font-family:var(--display);font-size:15px;letter-spacing:1.4px;text-transform:uppercase;
+  margin:-15px -14px 13px; padding:8px 14px 7px;
+  background:var(--ink);color:var(--acid);
+}
+.panel.dark > h2{background:var(--acid);color:var(--ink)}
+.panel > h2 .n{float:right;color:var(--paper);font-size:12px;letter-spacing:2px}
+.note{font-size:12px;line-height:1.55;color:var(--ink-soft)}
+.panel.dark .note{color:var(--paper-dim)}
+.tiny{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--smudge)}
+
+/* tape strip */
+.tape{
+  position:absolute;top:-11px;left:50%;width:82px;height:22px;margin-left:-41px;
+  background:rgba(228,255,26,.72);border:1px dashed rgba(11,11,9,.35);
+  transform:rotate(-2.5deg);pointer-events:none;
+}
+
+/* =================== BUTTONS =================== */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  background:var(--ink);color:var(--acid);border:var(--edge);box-shadow:var(--hard-blood);
+  font-family:var(--display);font-size:15px;letter-spacing:1.5px;text-transform:uppercase;
+  padding:14px 12px;cursor:pointer;transition:transform .12s,box-shadow .12s;
+}
+.btn:active{transform:translate(4px,4px);box-shadow:1px 1px 0 var(--blood)}
+.btn.alt{background:var(--acid);color:var(--ink);box-shadow:var(--hard)}
+.btn.alt:active{box-shadow:1px 1px 0 var(--ink)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:none;border:2px solid var(--ink)}
+.btn.ghost:active{background:var(--ink);color:var(--acid);transform:none}
+.btn.sm{font-size:12px;padding:10px 8px;letter-spacing:1.1px;box-shadow:3px 3px 0 var(--ink)}
+.stack>*{margin-bottom:9px}.stack>*:last-child{margin-bottom:0}
+.row{display:flex;gap:8px}.row>*{flex:1}
+
+/* =================== FORM =================== */
+input,select,textarea{
+  width:100%;background:#fffdf4;border:2px solid var(--ink);color:var(--ink);
+  font-family:var(--body);font-size:16px;padding:11px 10px;border-radius:0;
+  -webkit-appearance:none;appearance:none;
+}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 19px,calc(100% - 12px) 19px;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
+textarea{min-height:86px;font-size:12px;resize:vertical}
+label.fl{
+  display:block;font-family:var(--heavy);font-size:9.5px;letter-spacing:1.8px;
+  text-transform:uppercase;color:var(--ink-soft);margin:15px 0 5px;
+}
+label.fl:first-child{margin-top:0}
+
+/* =================== AVAILABILITY GRID =================== */
+.dayrow{display:flex;align-items:stretch;gap:9px;padding:9px 0;border-bottom:2px solid rgba(11,11,9,.13)}
+.dayrow:last-child{border-bottom:0}
+.dayrow .dl{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.dayrow .dl b{font-family:var(--display);font-size:17px;letter-spacing:.6px;text-transform:uppercase;line-height:1}
+.dayrow .dl i{font-style:normal;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--smudge);margin-top:3px}
+.dayrow.wknd{background:repeating-linear-gradient(45deg,transparent,transparent 6px,rgba(255,45,22,.07) 6px,rgba(255,45,22,.07) 12px)}
+.dayrow.wknd .dl b{color:var(--blood)}
+.dayrow.gone{opacity:.28}
+.slots{display:flex;gap:6px}
+.slot{
+  width:52px;min-height:46px;border:2px solid var(--ink);background:transparent;color:var(--ink);
+  font-family:var(--heavy);font-size:11px;letter-spacing:.5px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:transform .1s;
+}
+.slot em{font-style:normal;font-size:7.5px;letter-spacing:.3px;opacity:.5}
+.slot.yes{background:var(--acid);box-shadow:3px 3px 0 var(--ink);transform:rotate(-2deg)}
+.slot.yes em{opacity:.7}
+.slot:active{transform:scale(.94)}
+
+/* =================== RESULT SLABS =================== */
+.res{
+  display:flex;align-items:stretch;gap:0;margin-bottom:11px;border:var(--edge);
+  background:var(--paper);color:var(--ink);box-shadow:var(--hard);position:relative;
+}
+.res.full{background:var(--acid);box-shadow:5px 5px 0 var(--blood)}
+.res.partial{background:var(--paper);border-color:var(--blood);box-shadow:5px 5px 0 var(--blood)}
+.res.no{background:var(--paper-dim);box-shadow:3px 3px 0 var(--smudge);opacity:.72}
+.res .count{
+  width:62px;flex:0 0 auto;background:var(--ink);color:var(--acid);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.res.partial .count{background:var(--blood);color:var(--paper)}
+.res.no .count{background:var(--smudge);color:var(--paper)}
+.res .count b{font-family:var(--display);font-size:31px;line-height:.82}
+.res .count span{font-size:8px;letter-spacing:1.4px;font-family:var(--heavy)}
+.res .body{flex:1;min-width:0;padding:9px 11px;display:flex;flex-direction:column;justify-content:center}
+.res .body b{font-family:var(--display);font-size:17px;letter-spacing:.7px;text-transform:uppercase;line-height:1.05;display:block}
+.res .body .tm{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;margin-top:3px;color:var(--ink-soft)}
+.res .body .st{font-size:10.5px;letter-spacing:.6px;margin-top:5px;font-weight:700}
+.res.full .st{color:var(--ink)}
+.res.partial .st{color:var(--blood)}
+.res .pin{
+  width:46px;flex:0 0 auto;border:0;border-left:2px dashed rgba(11,11,9,.3);
+  background:transparent;font-size:17px;cursor:pointer;color:var(--ink);
+}
+.res .pin.on{background:var(--ink);color:var(--acid)}
+.res .stamp{
+  position:absolute;right:52px;top:-9px;background:var(--blood);color:var(--paper);
+  font-family:var(--heavy);font-size:8px;letter-spacing:1.6px;padding:3px 7px;transform:rotate(3deg);
+}
+
+/* =================== CHIPS =================== */
+.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  white-space:nowrap;background:transparent;color:var(--paper);border:2px solid var(--smudge);
+  font-family:var(--heavy);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;
+  padding:8px 12px;cursor:pointer;
+}
+.chip.on{background:var(--acid);color:var(--ink);border-color:var(--acid)}
+
+/* =================== ROSTER PILLS =================== */
+.who{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.pill{
+  font-family:var(--heavy);font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;
+  padding:6px 9px;border:2px solid var(--ink);background:transparent;color:var(--ink);
+}
+.pill.in{background:var(--acid)}
+.pill.wait{border-style:dashed;color:var(--smudge);border-color:var(--smudge)}
+.panel.dark .pill{border-color:var(--paper);color:var(--paper)}
+.panel.dark .pill.in{background:var(--acid);color:var(--ink);border-color:var(--acid)}
+
+/* =================== GIG LINES =================== */
+.gig{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:2px solid rgba(11,11,9,.14)}
+.gig:last-child{border-bottom:0}
+.gig .cd{width:54px;flex:0 0 auto;text-align:center;background:var(--ink);color:var(--acid);padding:5px 0;transform:rotate(-2deg)}
+.gig .cd b{display:block;font-family:var(--display);font-size:24px;line-height:.85}
+.gig .cd span{font-size:7.5px;letter-spacing:1.6px;font-family:var(--heavy)}
+.gig .gi{flex:1;min-width:0}
+.gig .gi b{display:block;font-family:var(--display);font-size:17px;letter-spacing:.6px;text-transform:uppercase;line-height:1.05}
+.gig .gi span{font-size:10.5px;letter-spacing:.5px;color:var(--ink-soft);display:block;margin-top:3px}
+.x{background:none;border:0;color:var(--ink);font-size:16px;cursor:pointer;padding:8px 4px;opacity:.5}
+
+/* =================== MEMBER ROWS =================== */
+.memrow{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.memrow .n{
+  width:26px;height:26px;flex:0 0 auto;background:var(--ink);color:var(--acid);
+  font-family:var(--display);font-size:14px;display:flex;align-items:center;justify-content:center;
+}
+.memrow .youtag{
+  flex:0 0 auto;background:var(--blood);color:var(--paper);font-family:var(--heavy);
+  font-size:8px;letter-spacing:1.2px;padding:5px 6px;
+}
+.slotdef{border:2px solid var(--ink);padding:10px;margin-bottom:9px;background:rgba(11,11,9,.04)}
+.slotdef .hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.slotdef .hd b{font-family:var(--display);font-size:15px;letter-spacing:1px;text-transform:uppercase;flex:1}
+.tgl{
+  border:2px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;
+  font-family:var(--heavy);font-size:9px;letter-spacing:1.3px;padding:6px 9px;
+}
+.tgl.on{background:var(--acid)}
+.times{display:flex;gap:7px;align-items:center}
+.times span{font-family:var(--display);font-size:15px}
+
+/* =================== BANNERS =================== */
+.flag{
+  border:var(--edge);padding:11px 12px;margin-bottom:18px;background:var(--acid);color:var(--ink);
+  font-size:12px;line-height:1.5;box-shadow:var(--hard-blood);transform:rotate(-.6deg);
+}
+.flag.red{background:var(--blood);color:var(--paper);box-shadow:5px 5px 0 var(--ink)}
+.flag b{font-family:var(--heavy);letter-spacing:.6px}
+
+/* live sync status */
+.dot{
+  display:inline-flex;align-items:center;gap:5px;font-family:var(--heavy);
+  font-size:8px;letter-spacing:1.4px;text-transform:uppercase;color:var(--smudge);
+}
+.dot i{width:7px;height:7px;border-radius:50%;background:var(--smudge);flex:0 0 auto}
+.dot.live i{background:var(--acid);animation:pulse 2.4s ease-in-out infinite}
+.dot.live{color:var(--acid)}
+.dot.connecting i{background:var(--acid);animation:pulse .8s ease-in-out infinite}
+.dot.offline i,.dot.error i{background:var(--blood)}
+.dot.offline,.dot.error{color:var(--blood)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+.slotdef.live-off{opacity:.55}
+.stale{color:var(--blood)}
+
+.blocker{
+  border:3px solid var(--acid);background:var(--ink);color:var(--paper);
+  padding:12px 13px;margin-bottom:17px;font-size:11.5px;line-height:1.6;
+  transform:rotate(.5deg);box-shadow:5px 5px 0 var(--blood);
+}
+.blocker b{font-family:var(--heavy);color:var(--acid);letter-spacing:.7px}
+
+.blank{
+  text-align:center;padding:26px 12px;font-size:12px;line-height:1.7;color:var(--ink-soft);
+}
+.blank b{display:block;font-family:var(--display);font-size:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px}
+
+.key{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+.key div{display:flex;align-items:center;gap:9px;font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;font-family:var(--heavy)}
+.key i{width:22px;height:22px;flex:0 0 auto;border:2px solid var(--paper)}
+
+code.big{
+  display:block;background:var(--ink);color:var(--acid);border:2px solid var(--paper);
+  padding:11px;font-family:var(--body);font-size:11px;word-break:break-all;margin:10px 0;
+}
+
+/* =================== NAV =================== */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:85;display:flex;
+  background:var(--ink);border-top:4px solid var(--acid);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+nav button{
+  flex:1;background:none;border:0;color:var(--smudge);cursor:pointer;
+  padding:9px 2px 11px;display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-family:var(--heavy);font-size:8.5px;letter-spacing:1.3px;text-transform:uppercase;
+}
+nav button i{font-style:normal;font-size:17px;line-height:1}
+nav button.on{color:var(--acid)}
+nav button.on i{transform:rotate(-6deg)}
+
+/* =================== TOAST =================== */
+.toast{
+  position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(10px) rotate(-1.5deg);
+  background:var(--acid);color:var(--ink);border:var(--edge);box-shadow:var(--hard-blood);
+  font-family:var(--heavy);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;
+  padding:11px 16px;z-index:9500;opacity:0;pointer-events:none;
+  transition:opacity .18s,transform .18s;max-width:86%;text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0) rotate(-1.5deg)}
+
+/* =================== SPLASH =================== */
+#splash{
+  position:fixed;inset:0;z-index:9800;background:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  transition:opacity .45s ease,visibility .45s;
+}
+#splash.gone{opacity:0;visibility:hidden}
+#splash .l1,#splash .l2{font-family:var(--display);text-transform:uppercase;line-height:.86;letter-spacing:1px}
+#splash .l1{font-size:15vw;color:var(--paper);animation:slam .5s cubic-bezier(.2,1.4,.4,1) both}
+#splash .l2{font-size:22vw;color:var(--acid);animation:slam .5s .12s cubic-bezier(.2,1.4,.4,1) both;transform-origin:center}
+#splash .l3{font-family:var(--heavy);font-size:9px;letter-spacing:4px;color:var(--blood);margin-top:12px;animation:slam .4s .3s ease both}
+@keyframes slam{from{opacity:0;transform:scale(1.5) rotate(-6deg)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div id="grain"></div>
+
+<div id="splash">
+  <div class="l1">Notorious</div>
+  <div class="l2">D.A.D.</div>
+  <div class="l3">PRACTICE ROOM</div>
+</div>
+
+<header>
+  <div class="mark">◈</div>
+  <div class="ttl">
+    <h1 id="hBand">Notorious <em>D.A.D.</em></h1>
+    <div class="sub" id="hSub">loading</div>
+  </div>
+  <button class="gear" onclick="go('setup')" aria-label="Settings">✕</button>
+</header>
+<div class="ticker"><div id="tick">· LOADING ·</div></div>
+
+<main>
+
+<!-- ==================== MY TIME ==================== -->
+<section id="v-me" class="view">
+  <div id="meFlag"></div>
+
+  <div class="panel tilt rv">
+    <h2>Who's talking</h2>
+    <select id="meSelect" onchange="setMe(this.value)"></select>
+    <div class="note" style="margin-top:10px">Hit a slot to claim it. Yellow = you're in. Blank = you're out.</div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn ghost sm" onclick="bulkMe(1)">All in</button>
+      <button class="btn ghost sm" onclick="bulkMe(0)">Wipe</button>
+      <button class="btn ghost sm" onclick="bulkEvenings()">Nights</button>
+    </div>
+  </div>
+
+  <div class="panel rv">
+    <h2 id="meRangeLbl">Your diary</h2>
+    <div id="meGrid"></div>
+  </div>
+
+  <div class="rv"><button class="btn alt" onclick="go('share')">Send it to the band →</button></div>
+</section>
+
+<!-- ==================== BEST SLOTS ==================== -->
+<section id="v-slots" class="view">
+  <div id="slotsWarn"></div>
+  <div id="blocker"></div>
+  <div class="chips" id="slotFilters"></div>
+  <div id="slotsList"></div>
+  <div class="panel dark rv">
+    <h2>The code</h2>
+    <div class="key">
+      <div><i style="background:var(--acid)"></i><span>All <b id="lgN">5</b> in — let’s rock</span></div>
+      <div><i style="background:var(--blood)"></i><span>One down — still worth doing</span></div>
+      <div><i style="background:var(--smudge)"></i><span>Three or fewer — dead night</span></div>
+    </div>
+    <div class="note" style="margin-top:13px">📌 on any slot books it. Booked practices live on the <b>Gigs</b> screen, counting down to the next show.</div>
+  </div>
+</section>
+
+<!-- ==================== GIGS ==================== -->
+<section id="v-gigs" class="view">
+  <div class="panel tilt rv">
+    <h2>On the bill</h2>
+    <div id="gigList"></div>
+  </div>
+
+  <div class="panel dark rv">
+    <h2>Locked in</h2>
+    <div id="lockedList"></div>
+  </div>
+
+  <div class="panel tilt2 rv">
+    <h2>Book a gig</h2>
+    <label class="fl">Venue</label>
+    <input id="gigName" placeholder="Whelan's">
+    <label class="fl">Date</label>
+    <input id="gigDate" type="date">
+    <label class="fl">Practices wanted before it</label>
+    <input id="gigTarget" type="number" min="0" max="30" value="4">
+    <button class="btn" style="margin-top:14px" onclick="addGig()">Add to the bill</button>
+  </div>
+</section>
+
+<!-- ==================== SHARE ==================== -->
+<section id="v-share" class="view">
+  <div id="shareLive"></div>
+
+  <div id="shareCodes">
+  <div class="panel tilt rv">
+    <h2>01 — Paste the flyer<span class="n">ALL</span></h2>
+    <div class="note">One link. Everyone opens it on their own phone — iPhone, Android, whatever. Same members, same dates, same gigs.</div>
+    <div class="stack" style="margin-top:13px">
+      <button class="btn" onclick="shareSetup()">Send setup link</button>
+      <button class="btn ghost" onclick="copySetup()">Copy link instead</button>
+    </div>
+  </div>
+
+  <div class="panel tilt2 rv">
+    <h2>02 — Call in your nights<span class="n">YOU</span></h2>
+    <div class="note">Ticked your slots? Fire this code back to whoever's running it.</div>
+    <div class="panel dark" style="margin:11px 0 0;box-shadow:none;padding:11px">
+      <code class="big" id="myCode" style="margin:0">—</code>
+    </div>
+    <div class="row" style="margin-top:11px">
+      <button class="btn sm" onclick="shareCode()">Send code</button>
+      <button class="btn ghost sm" onclick="copyCode()">Copy</button>
+    </div>
+  </div>
+
+  <div class="panel rv">
+    <h2>03 — Collect the replies<span class="n">BOSS</span></h2>
+    <div class="note">Paste any codes you've been sent, one per line.</div>
+    <textarea id="pasteBox" placeholder="BSM1.2.k4f9.AAoAFA…" style="margin-top:10px"></textarea>
+    <button class="btn" style="margin-top:10px" onclick="importCodes()">Merge them in</button>
+    <div id="subStatus" style="margin-top:14px"></div>
+  </div>
+
+  <div class="panel tilt rv">
+    <h2>04 — Post the verdict<span class="n">ALL</span></h2>
+    <div class="note">Everyone in? Send the full calendar back so the band sees the agreed nights.</div>
+    <button class="btn alt" style="margin-top:13px" onclick="shareFull()">Send full calendar</button>
+  </div>
+  </div>
+</section>
+
+<!-- ==================== SETUP ==================== -->
+<section id="v-setup" class="view">
+  <div id="setupHint"></div>
+
+  <div class="panel dark tilt2 rv">
+    <h2>Live sync<span class="n" id="liveChip"></span></h2>
+    <div id="liveBox"></div>
+  </div>
+
+  <div class="panel tilt rv">
+    <h2>The band</h2>
+    <label class="fl">Name on the poster</label>
+    <input id="sBand" oninput="S.band=this.value;save();paintHeader()">
+    <label class="fl">The line-up</label>
+    <div id="memberList"></div>
+    <button class="btn ghost sm" style="margin-top:8px" onclick="addMember()">+ Another body</button>
+    <div class="note" style="margin-top:10px">The one-down rule follows the line-up: "one down" always means exactly one short of everybody.</div>
+  </div>
+
+  <div class="panel tilt2 rv">
+    <h2>Slot times</h2>
+    <div id="slotDefs"></div>
+    <div class="note">Switch a slot off to keep the grid tight. Changing the <b>times</b> is safe; switching a slot <b>on or off</b> resets everyone's ticks.</div>
+  </div>
+
+  <div class="panel rv">
+    <h2>The window</h2>
+    <label class="fl">Start from</label>
+    <input id="sStart" type="date" onchange="changeSchedule('start',this.value)">
+    <label class="fl">How far ahead</label>
+    <select id="sWeeks" onchange="changeSchedule('days',this.value*7)">
+      <option value="2">2 weeks</option><option value="4">4 weeks</option>
+      <option value="6">6 weeks</option><option value="8">8 weeks</option>
+      <option value="12">12 weeks</option>
+    </select>
+    <div class="note" style="margin-top:11px">⚠ Changing the window resets ticks. Agree it before the link goes out.</div>
+  </div>
+
+  <div class="panel dark rv">
+    <h2>Burn it down</h2>
+    <button class="btn alt" onclick="resetAll()">Wipe everything</button>
+  </div>
+</section>
+
+</main>
+
+<nav>
+  <button id="n-me"    onclick="go('me')"><i>✍</i>My time</button>
+  <button id="n-slots" onclick="go('slots')"><i>▦</i>Slots</button>
+  <button id="n-gigs"  onclick="go('gigs')"><i>★</i>Gigs</button>
+  <button id="n-share" onclick="go('share')"><i>⇶</i>Share</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   STORAGE — localStorage with an in-memory fallback
+   ============================================================ */
+var mem={};
+var store={
+  get:function(k){ try{return localStorage.getItem(k);}catch(e){return mem[k]===undefined?null:mem[k];} },
+  set:function(k,v){ try{localStorage.setItem(k,v);}catch(e){mem[k]=v;} },
+  del:function(k){ try{localStorage.removeItem(k);}catch(e){delete mem[k];} }
+};
+var KEY='notoriousDad.v2', KEYME=KEY+'.me';
+
+/* ============================================================
+   STATE
+   ============================================================ */
+var S=null, me=null, view='me', filter='viable';
+var SLOT_ORDER=['M','A','E'];
+var LINEUP=['Francois','Matt','Ron','Tim','Paddy'];
+var SLOT_FALLBACK={
+  M:{n:'Morning',  a:'10:00', b:'13:00'},
+  A:{n:'Afternoon',a:'13:00', b:'17:00'},
+  E:{n:'Evening',  a:'18:30', b:'22:30'}
+};
+
+function todayISO(){ return iso(new Date()); }
+function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseISO(s){ var p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function addDays(isoStr,n){ var d=parseISO(isoStr); d.setDate(d.getDate()+n); return d; }
+function daysBetween(a,b){ return Math.round((parseISO(b)-parseISO(a))/86400000); }
+function fmtDay(d){
+  var dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return dn[d.getDay()]+' '+d.getDate()+' '+mo[d.getMonth()];
+}
+/* 18:30 -> 6.30pm  ·  10:00 -> 10am */
+function t12(t){
+  var p=String(t||'').split(':'), h=+p[0]||0, m=p[1]||'00';
+  var ap=h>=12?'pm':'am', hh=h%12||12;
+  return (m==='00'? hh : hh+'.'+m)+ap;
+}
+function t12range(a,b){
+  var pa=(+String(a).split(':')[0]>=12)?'pm':'am', pb=(+String(b).split(':')[0]>=12)?'pm':'am';
+  var A=t12(a);
+  if(pa===pb) A=A.replace(/(am|pm)$/,'');   // 6.30–10.30pm
+  return A+'–'+t12(b);
+}
+function sdef(k){ return (S.slotDefs&&S.slotDefs[k])||SLOT_FALLBACK[k]||{n:k,a:'00:00',b:'00:00'}; }
+function slotName(i){ return sdef(S.slots[i]).n; }
+function slotTime(i){ var d=sdef(S.slots[i]); return t12range(d.a,d.b); }
+function slotAbbr(i){ return sdef(S.slots[i]).n.slice(0,3).toUpperCase(); }
+
+function blank(){
+  return {
+    v:2,
+    band:'Notorious D.A.D.',
+    members:['Francois','Matt','Ron','Tim','Paddy'],
+    start:todayISO(),
+    days:28,
+    slots:['M','A','E'],
+    slotDefs:JSON.parse(JSON.stringify(SLOT_FALLBACK)),
+    gigs:[],
+    avail:{}, sub:{}, locked:{}, ts:{}
+  };
+}
+function save(){ store.set(KEY,JSON.stringify(S)); if(me!==null) store.set(KEYME,String(me)); }
+function migrate(o){
+  if(!o) return null;
+  if(!o.slotDefs) o.slotDefs=JSON.parse(JSON.stringify(SLOT_FALLBACK));
+  SLOT_ORDER.forEach(function(k){ if(!o.slotDefs[k]) o.slotDefs[k]=JSON.parse(JSON.stringify(SLOT_FALLBACK[k])); });
+  if(Array.isArray(o.slots) && o.slots.length && typeof o.slots[0]==='string' && o.slots[0].length>1){
+    var map={Morning:'M',Afternoon:'A',Evening:'E'};
+    o.slots=o.slots.map(function(s){ return map[s]||s.charAt(0).toUpperCase(); });
+    o.avail={}; o.sub={}; o.locked={};   // old ticks no longer align
+  }
+  o.slots=(o.slots||['M','A','E']).filter(function(k){return SLOT_ORDER.indexOf(k)>-1;});
+  if(!o.slots.length) o.slots=['E'];
+  o.slots.sort(function(a,b){return SLOT_ORDER.indexOf(a)-SLOT_ORDER.indexOf(b);});
+  if(!o.avail)o.avail={}; if(!o.sub)o.sub={}; if(!o.locked)o.locked={}; if(!o.gigs)o.gigs=[]; if(!o.ts)o.ts={};
+  if(!o.band)o.band='Notorious D.A.D.';
+  // a roster that was never filled in gets the real line-up
+  if(Array.isArray(o.members) && o.members.length===5 &&
+     o.members.every(function(x){ return !x || !String(x).trim(); })) o.members=LINEUP.slice();
+  o.v=2; return o;
+}
+function load(){
+  var raw=null;
+  try{ raw=store.get(KEY) || store.get('bandPracticeFinder.v1'); }catch(e){}
+  try{ if(raw) S=migrate(JSON.parse(raw)); }catch(e){ S=null; }
+  if(!S) S=blank();
+  var m=store.get(KEYME);
+  me=(m===null||m==='')?null:+m;
+  if(me!==null && (isNaN(me)||me<0||me>=S.members.length)) me=null;
+  LIVE.db=store.get(KEYDB)||DEFAULT_DB||'';
+  LIVE.id=store.get(KEYID)||'';
+}
+
+/* ============================================================
+   ENCODING — short shareable codes
+   ============================================================ */
+function b64e(s){ return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function b64d(s){ s=String(s).replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; return decodeURIComponent(escape(atob(s))); }
+function bytesToB64(b){ var s=''; for(var i=0;i<b.length;i++) s+=String.fromCharCode(b[i]);
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function b64ToBytes(str){ str=String(str).replace(/-/g,'+').replace(/_/g,'/'); while(str.length%4)str+='=';
+  var bin=atob(str),o=[]; for(var i=0;i<bin.length;i++)o.push(bin.charCodeAt(i)); return o; }
+
+/* signature deliberately excludes slot TIMES, so editing 6.30pm -> 7pm
+   never invalidates a code somebody already sent you */
+function sig(){ return S.start+'|'+S.days+'|'+S.slots.join(',')+'|'+S.members.length; }
+function hash(str){ var h=5381; for(var i=0;i<str.length;i++){ h=((h*33)^str.charCodeAt(i))>>>0; } return h.toString(36).slice(0,4); }
+function cellCount(){ return S.days*S.slots.length; }
+function keyAt(i){ return Math.floor(i/S.slots.length)+'-'+(i%S.slots.length); }
+
+/* one bit per date+slot, packed to base64 — used by both the offline
+   codes and the live sync, so there is only ever one encoder to trust */
+function packCells(mi){
+  var n=cellCount(), bytes=[], a=S.avail[mi]||{};
+  for(var i=0;i<n;i+=8){ var b=0;
+    for(var j=0;j<8&&i+j<n;j++){ if(a[keyAt(i+j)]) b|=(1<<j); }
+    bytes.push(b);
+  }
+  return bytesToB64(bytes);
+}
+function unpackCells(b64){
+  var bytes=b64ToBytes(b64||''), n=cellCount(), a={};
+  for(var i=0;i<n;i++){ var b=bytes[Math.floor(i/8)]||0; if(b&(1<<(i%8))) a[keyAt(i)]=1; }
+  return a;
+}
+function packMember(mi){ return 'BSM1.'+mi+'.'+hash(sig())+'.'+packCells(mi); }
+function unpackMember(code){
+  var p=String(code).trim().split('.');
+  if(p.length!==4||p[0]!=='BSM1') return {err:'That is not an availability code.'};
+  var mi=+p[1];
+  if(isNaN(mi)||mi<0||mi>=S.members.length) return {err:'That code belongs to somebody who is not in this line-up.'};
+  if(p[2]!==hash(sig())) return {err:(S.members[mi]||('Member '+(mi+1)))+' sent a code for a different date window. Re-send them the setup link.'};
+  return {mi:mi,avail:unpackCells(p[3])};
+}
+function setupPayload(){
+  return 'BSS1.'+b64e(JSON.stringify({b:S.band,m:S.members,s:S.start,d:S.days,t:S.slots,sd:S.slotDefs,g:S.gigs}));
+}
+function fullPayload(){ return 'BSF1.'+b64e(JSON.stringify(S)); }
+function baseUrl(){ return location.href.split('#')[0]; }
+
+/* ============================================================
+   THE RULE — all in / one down / dead
+   ============================================================ */
+function results(){
+  var out=[], n=S.members.length, today=todayISO();
+  for(var d=0; d<S.days; d++){
+    var date=addDays(S.start,d), di=iso(date);
+    for(var t=0;t<S.slots.length;t++){
+      var k=d+'-'+t, yes=[], no=[], wait=[];
+      for(var m=0;m<n;m++){
+        if(S.avail[m]&&S.avail[m][k]) yes.push(m);
+        else if(S.sub[m]) no.push(m);
+        else wait.push(m);
+      }
+      var tier = yes.length>=n ? 'full' : (yes.length===n-1 ? 'partial' : 'no');
+      out.push({d:d,t:t,key:k,date:date,di:di,yes:yes,no:no,wait:wait,
+                tier:tier,past:di<today,locked:!!S.locked[k]});
+    }
+  }
+  return out;
+}
+function name(i){ return S.members[i]||('Member '+(i+1)); }
+function missing(x){
+  var out=[];
+  for(var m=0;m<S.members.length;m++) if(x.yes.indexOf(m)<0) out.push(name(m));
+  return out;
+}
+
+/* Who keeps killing the full-band nights? Only speaks up when it is a
+   real pattern, not a one-off. */
+function blockerStats(){
+  var near=results().filter(function(x){ return !x.past && x.tier==='partial'; });
+  if(near.length<3) return null;
+  var tally={}, dayTally={};
+  near.forEach(function(x){
+    var m=missing(x); if(m.length!==1) return;
+    tally[m[0]]=(tally[m[0]]||0)+1;
+    var kd=m[0]+'|'+x.date.getDay();
+    dayTally[kd]=(dayTally[kd]||0)+1;
+  });
+  var who=Object.keys(tally).sort(function(a,b){return tally[b]-tally[a];})[0];
+  if(!who) return null;
+  var n=tally[who];
+  if(n<3 || n/near.length<0.5) return null;    // not a pattern, stay quiet
+  var dn=['Sundays','Mondays','Tuesdays','Wednesdays','Thursdays','Fridays','Saturdays'];
+  var worst=null, worstN=0;
+  for(var d=0; d<7; d++){
+    var c=dayTally[who+'|'+d]||0;
+    if(c>worstN){ worstN=c; worst=dn[d]; }
+  }
+  return {who:who, count:n, of:near.length, day:(worstN>=2&&worstN/n>=0.5)?worst:null, dayCount:worstN};
+}
+function blockerLine(){
+  var b=blockerStats();
+  if(!b) return '';
+  var tail = b.day ? ' Mostly <b>'+esc(b.day)+'</b> ('+b.dayCount+' of them).' : '';
+  return '<div class="blocker rv">🔍 <b>'+esc(b.who)+'</b> is the blocker on <b>'+b.count+' of '+b.of+
+         '</b> near-misses.'+tail+' Sort '+esc(b.who)+' out and most of these become full-band nights.</div>';
+}
+
+/* ============================================================
+   REVEALS
+   ============================================================ */
+var io=null;
+function armReveals(){
+  var nodes=document.querySelectorAll('.view.on .rv');
+  if(!('IntersectionObserver' in window)){
+    for(var i=0;i<nodes.length;i++) nodes[i].classList.add('in');
+    return;
+  }
+  if(!io) io=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  },{rootMargin:'0px 0px -40px 0px',threshold:.06});
+  for(var j=0;j<nodes.length;j++){
+    var el=nodes[j];
+    el.classList.remove('in');
+    el.style.transitionDelay=(Math.min(j,6)*70)+'ms';
+    io.observe(el);
+  }
+}
+function stagger(container,sel){
+  var els=container.querySelectorAll(sel);
+  for(var i=0;i<els.length;i++){
+    (function(el,i){
+      el.style.opacity='0'; el.style.transform='translateY(14px)';
+      setTimeout(function(){
+        el.style.transition='opacity .38s ease, transform .42s cubic-bezier(.16,1,.3,1)';
+        el.style.opacity=''; el.style.transform='';
+      }, 30+Math.min(i,14)*34);
+    })(els[i],i);
+  }
+}
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+function go(v){
+  view=v;
+  ['me','slots','gigs','share','setup'].forEach(function(x){
+    var el=document.getElementById('v-'+x); if(el) el.classList.toggle('on',x===v);
+    var nb=document.getElementById('n-'+x); if(nb) nb.classList.toggle('on',x===v);
+  });
+  window.scrollTo(0,0);
+  paint();
+  armReveals();
+}
+function paint(){ paintHeader(); paintMe(); paintSlots(); paintGigs(); paintShare(); paintSetup(); }
+
+function paintHeader(){
+  var b=S.band||'Notorious D.A.D.';
+  var parts=b.split(' ');
+  document.getElementById('hBand').innerHTML = parts.length>1
+    ? esc(parts.slice(0,-1).join(' '))+' <em>'+esc(parts[parts.length-1])+'</em>'
+    : '<em>'+esc(b)+'</em>';
+  var n=S.members.length, done=0;
+  for(var i=0;i<n;i++) if(S.sub[i]) done++;
+  var g=nextGig();
+  var bits=[done+'/'+n+' checked in'];
+  if(g) bits.push(daysBetween(todayISO(),g.date)+' days to '+g.name);
+  document.getElementById('hSub').innerHTML=
+    '<span class="dot '+LIVE.status+'"><i></i>'+esc(liveStatusLabel())+'</span>  ·  '+esc(bits.join('  ·  '));
+  document.getElementById('lgN').textContent=n;
+  paintTicker();
+}
+function paintTicker(){
+  var r=results().filter(function(x){return !x.past;});
+  var full=r.filter(function(x){return x.tier==='full';}).length;
+  var part=r.filter(function(x){return x.tier==='partial';}).length;
+  var g=nextGig(), lines=[];
+  if(g) lines.push('NEXT: '+g.name.toUpperCase()+' — '+daysBetween(todayISO(),g.date)+' DAYS');
+  lines.push(full+' NIGHTS TO ROCK');
+  lines.push(part+' ONE-DOWN NIGHTS');
+  var locked=Object.keys(S.locked).length;
+  lines.push(locked+' LOCKED IN');
+  var s=lines.join('   ✷   ')+'   ✷   ';
+  document.getElementById('tick').textContent=s+s+s+s;
+}
+function nextGig(){
+  var t=todayISO();
+  var up=S.gigs.filter(function(g){return g.date>=t;}).sort(function(a,b){return a.date<b.date?-1:1;});
+  return up[0]||null;
+}
+
+/* ---------- MY TIME ---------- */
+function paintMe(){
+  var sel=document.getElementById('meSelect'), h='<option value="">— pick your name —</option>';
+  for(var i=0;i<S.members.length;i++) h+='<option value="'+i+'"'+(me===i?' selected':'')+'>'+esc(name(i))+'</option>';
+  sel.innerHTML=h;
+
+  document.getElementById('meFlag').innerHTML = (me===null
+    ? '<div class="flag rv"><b>OI.</b> Pick your name, then claim the slots you can actually make.</div>'
+    : (S.sub[me] ? '' : '<div class="flag red rv"><b>NOT SENT YET.</b> Claim your slots, then hit Share.</div>'))
+    + installHint();
+
+  var g=document.getElementById('meGrid');
+  if(me===null){ g.innerHTML='<div class="blank"><b>Name first</b>Nothing to tick until we know who you are.</div>'; return; }
+
+  document.getElementById('meRangeLbl').textContent=
+    fmtDay(parseISO(S.start))+' → '+fmtDay(addDays(S.start,S.days-1));
+
+  var html='', today=todayISO();
+  for(var d=0; d<S.days; d++){
+    var date=addDays(S.start,d), wknd=(date.getDay()===0||date.getDay()===6);
+    var past=iso(date)<today;
+    html+='<div class="dayrow'+(wknd?' wknd':'')+(past?' gone':'')+'">'+
+          '<div class="dl"><b>'+fmtDay(date)+'</b><i>'+(past?'gone':(wknd?'weekend':'&nbsp;'))+'</i></div><div class="slots">';
+    for(var t=0;t<S.slots.length;t++){
+      var k=d+'-'+t, on=!!(S.avail[me]&&S.avail[me][k]);
+      html+='<button class="slot'+(on?' yes':'')+'" onclick="toggleMe(\''+k+'\')" title="'+esc(slotName(t)+' '+slotTime(t))+'">'+
+            esc(slotAbbr(t))+'<em>'+esc(slotTime(t))+'</em></button>';
+    }
+    html+='</div></div>';
+  }
+  g.innerHTML=html;
+}
+function setMe(v){
+  me = v===''?null:+v;
+  if(me!==null && !S.avail[me]) S.avail[me]={};
+  save(); if(me!==null && S.sub[me]) liveMineChanged(); paint();
+  if(me!==null) stagger(document.getElementById('meGrid'),'.dayrow');
+}
+function toggleMe(k){
+  if(me===null){ toast('Pick your name first'); return; }
+  if(!S.avail[me]) S.avail[me]={};
+  if(S.avail[me][k]) delete S.avail[me][k]; else S.avail[me][k]=1;
+  S.sub[me]=true; save(); liveMineChanged(); paintMe(); paintHeader();
+}
+function bulkMe(on){
+  if(me===null){ toast('Pick your name first'); return; }
+  S.avail[me]={};
+  if(on){ for(var i=0;i<cellCount();i++) S.avail[me][keyAt(i)]=1; }
+  S.sub[me]=true; save(); liveMineChanged(); paintMe();
+  stagger(document.getElementById('meGrid'),'.slot');
+  toast(on?'All in':'Wiped');
+}
+function bulkEvenings(){
+  if(me===null){ toast('Pick your name first'); return; }
+  var ei=S.slots.indexOf('E');
+  if(ei<0){ toast('Evening slot is switched off'); return; }
+  S.avail[me]={};
+  for(var d=0;d<S.days;d++) S.avail[me][d+'-'+ei]=1;
+  S.sub[me]=true; save(); liveMineChanged(); paintMe();
+  stagger(document.getElementById('meGrid'),'.slot');
+  toast('Every night claimed');
+}
+
+/* ---------- SLOTS ---------- */
+function paintSlots(){
+  var n=S.members.length, waiting=[];
+  for(var i=0;i<n;i++) if(!S.sub[i]) waiting.push(name(i));
+  document.getElementById('slotsWarn').innerHTML = waiting.length
+    ? '<div class="flag red rv"><b>WAITING ON '+esc(waiting.join(', ').toUpperCase())+'.</b> These results move once they check in.</div>'
+    : '<div class="flag rv"><b>ALL '+n+' CHECKED IN.</b> What you see is what you get.</div>';
+
+  document.getElementById('blocker').innerHTML=blockerLine();
+
+  /* one axis, loosest -> tightest -> escape hatch */
+  var f=[['viable','Playable'],['full','Let’s Rock'],['all','Everything']];
+  document.getElementById('slotFilters').innerHTML=f.map(function(x){
+    return '<button class="chip'+(filter===x[0]?' on':'')+'" onclick="setFilter(\''+x[0]+'\')">'+esc(x[1])+'</button>';
+  }).join('');
+
+  var r=results().filter(function(x){ return !x.past; });
+  var show=r.filter(function(x){
+    if(filter==='all') return true;
+    if(filter==='full') return x.tier==='full';
+    return x.tier!=='no';          // Playable = full band + one down
+  });
+
+  var list=document.getElementById('slotsList');
+  if(!show.length){
+    list.innerHTML='<div class="panel tilt rv"><div class="blank"><b>'+
+      (filter==='full'?'Never all five':'No night stands up')+'</b>'+
+      (filter==='full'?'No night has the whole band yet. Try Playable for the one-down nights.'
+        :'Nothing yet with four or more of you free. Widen the window, or chase whoever hasn\'t replied.')+
+      '</div></div>';
+    return;
+  }
+
+  var g=nextGig();
+  list.innerHTML=show.map(function(x){
+    var cls=x.tier;
+    var st = x.tier==='full' ? 'LET’S ROCK — ALL '+S.members.length+' IN'
+           : x.tier==='partial' ? 'WITHOUT '+missing(x).join(', ').toUpperCase()
+           : 'ONLY '+x.yes.length+' FREE — DEAD';
+    var away='';
+    if(g){ var dd=daysBetween(x.di,g.date); if(dd>=0) away=dd+' days out from '+g.name; }
+    return '<div class="res '+cls+' rv">'+
+      (x.locked?'<div class="stamp">BOOKED</div>':'')+
+      '<div class="count"><b>'+x.yes.length+'</b><span>OF '+S.members.length+'</span></div>'+
+      '<div class="body"><b>'+fmtDay(x.date)+'</b>'+
+        '<div class="tm">'+esc(slotName(x.t))+' · '+esc(slotTime(x.t))+(away?' · '+esc(away):'')+'</div>'+
+        '<div class="st">'+esc(st)+'</div></div>'+
+      '<button class="pin'+(x.locked?' on':'')+'" onclick="toggleLock(\''+x.key+'\')" title="Lock in">📌</button>'+
+      '</div>';
+  }).join('');
+}
+function setFilter(f){ filter=f; paintSlots(); armReveals(); stagger(document.getElementById('slotsList'),'.res'); }
+function toggleLock(k){
+  if(S.locked[k]) delete S.locked[k]; else S.locked[k]=1;
+  save(); livePushLocked(); paintSlots(); paintGigs(); paintHeader();
+  var els=document.querySelectorAll('#slotsList .rv'); for(var i=0;i<els.length;i++) els[i].classList.add('in');
+  toast(S.locked[k]?'Locked in 🥁':'Dropped');
+}
+
+/* ---------- GIGS ---------- */
+function paintGigs(){
+  var t=todayISO();
+  var gs=S.gigs.slice().sort(function(a,b){return a.date<b.date?-1:1;});
+  var lockedDates=Object.keys(S.locked).map(function(k){ return iso(addDays(S.start,+k.split('-')[0])); });
+
+  document.getElementById('gigList').innerHTML = gs.length ? gs.map(function(g){
+    var dd=daysBetween(t,g.date);
+    var booked=lockedDates.filter(function(d){ return d>=t && d<=g.date; }).length;
+    var target=g.target||0;
+    var status = dd<0 ? 'played out'
+      : (booked>=target ? '✔ '+booked+' practice'+(booked===1?'':'s')+' booked'
+                        : '⚠ '+booked+' of '+target+' practices booked');
+    return '<div class="gig"><div class="cd"><b>'+(dd<0?'—':dd)+'</b><span>'+(dd<0?'PAST':'DAYS')+'</span></div>'+
+      '<div class="gi"><b>'+esc(g.name)+'</b><span>'+fmtDay(parseISO(g.date))+' · '+esc(status)+'</span></div>'+
+      '<button class="x" onclick="delGig(\''+g.id+'\')">✕</button></div>';
+  }).join('') : '<div class="blank"><b>No gigs booked</b>Add one and every slot starts counting down to it.</div>';
+
+  var up=results().filter(function(x){ return x.locked && !x.past; }).sort(function(a,b){ return a.d-b.d||a.t-b.t; });
+  document.getElementById('lockedList').innerHTML = up.length ? up.map(function(x){
+    return '<div class="gig" style="border-color:rgba(242,237,221,.2)">'+
+      '<div class="cd" style="background:var(--acid);color:var(--ink)"><b>'+daysBetween(t,x.di)+'</b><span>DAYS</span></div>'+
+      '<div class="gi"><b style="color:var(--paper)">'+fmtDay(x.date)+'</b>'+
+      '<span style="color:var(--paper-dim)">'+esc(slotName(x.t))+' · '+esc(slotTime(x.t))+' · '+
+      (x.tier==='full'?'all '+S.members.length+' in':(x.tier==='partial'?'without '+missing(x).join(', '):x.yes.length+' of '+S.members.length))+
+      '</span></div><button class="x" style="color:var(--paper)" onclick="toggleLock(\''+x.key+'\')">✕</button></div>';
+  }).join('') : '<div class="blank" style="color:var(--paper-dim)"><b style="color:var(--acid)">Nothing booked</b>Hit 📌 on a slot to lock a practice.</div>';
+}
+function addGig(){
+  var n=document.getElementById('gigName').value.trim();
+  var d=document.getElementById('gigDate').value;
+  var tg=+document.getElementById('gigTarget').value||0;
+  if(!n||!d){ toast('Needs a venue and a date'); return; }
+  S.gigs.push({id:'g'+Date.now(),name:n,date:d,target:tg});
+  document.getElementById('gigName').value=''; document.getElementById('gigDate').value='';
+  save(); metaChanged(false); paint(); stagger(document.getElementById('gigList'),'.gig'); toast('On the bill 🎤');
+}
+function delGig(id){ S.gigs=S.gigs.filter(function(g){return g.id!==id;}); save(); metaChanged(false); paint(); }
+
+/* ---------- SHARE ---------- */
+function paintShare(){
+  document.getElementById('myCode').textContent = me===null ? 'Pick your name on MY TIME first' : packMember(me);
+  var h='';
+  for(var i=0;i<S.members.length;i++){
+    var t=(S.ts&&S.ts[i])?' · '+ago(S.ts[i]):'';
+    h+='<span class="pill '+(S.sub[i]?'in':'wait')+'">'+(S.sub[i]?'✔ ':'· ')+esc(name(i))+esc(t)+'</span>';
+  }
+  document.getElementById('subStatus').innerHTML='<div class="tiny">Checked in</div><div class="who">'+h+'</div>';
+
+  /* live mode makes the code dance unnecessary — demote it, don't delete it */
+  var live=document.getElementById('shareLive'), codes=document.getElementById('shareCodes');
+  if(!live||!codes) return;
+  if(liveConfigured()){
+    var who='';
+    for(var j=0;j<S.members.length;j++)
+      who+='<span class="pill '+(S.sub[j]?'in':'wait')+'">'+esc(name(j))+
+           ((S.ts&&S.ts[j])?' · '+esc(ago(S.ts[j])):' · —')+'</span>';
+    live.innerHTML=
+      '<div class="panel tilt rv"><h2>The band link<span class="n">'+esc(liveStatusLabel().toUpperCase())+'</span></h2>'+
+      '<div class="note">Send this once. Everyone opens it, picks their name and ticks — it lands here by itself. They can change it any time.</div>'+
+      '<div class="tiny" style="margin-top:13px">Last updated</div><div class="who">'+who+'</div>'+
+      '<div class="stack" style="margin-top:14px">'+
+        '<button class="btn" onclick="shareLive()">Send the band link</button>'+
+        '<button class="btn ghost" onclick="copyLive()">Copy link</button>'+
+      '</div></div>'+
+      '<div class="panel dark rv" style="margin-bottom:14px"><h2>No signal?</h2>'+
+      '<div class="note">The old code system still works if somebody is stuck without data. Everything below is the fallback — you shouldn\'t need it.</div>'+
+      '<button class="btn ghost sm" style="margin-top:11px;color:var(--paper);border-color:var(--paper)" onclick="toggleCodes()">'+
+      (SHOWCODES?'Hide the fallback':'Show the fallback')+'</button></div>';
+    codes.style.display=SHOWCODES?'':'none';
+  } else {
+    live.innerHTML='';
+    codes.style.display='';
+  }
+}
+var SHOWCODES=false;
+function toggleCodes(){ SHOWCODES=!SHOWCODES; paintShare(); armReveals(); }
+function shareUrl(p){ return baseUrl()+'#'+p; }
+function doShare(url,title){
+  if(navigator.share) navigator.share({title:title,url:url}).catch(function(){});
+  else copy(url,'Link copied — drop it in the band chat');
+}
+function shareSetup(){ doShare(shareUrl(setupPayload()),S.band+' — practice room'); }
+function copySetup(){ copy(shareUrl(setupPayload()),'Setup link copied'); }
+function shareFull(){ doShare(shareUrl(fullPayload()),S.band+' — full calendar'); }
+function shareCode(){
+  if(me===null){ toast('Pick your name first'); return; }
+  var c=packMember(me), txt=name(me)+' — availability for '+S.band+':\n'+c;
+  if(navigator.share) navigator.share({text:txt}).catch(function(){});
+  else copy(c,'Code copied — send it on');
+}
+function copyCode(){ if(me===null){ toast('Pick your name first'); return; } copy(packMember(me),'Code copied'); }
+function copy(txt,msg){
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(txt).then(function(){toast(msg);},function(){fallbackCopy(txt,msg);});
+  else fallbackCopy(txt,msg);
+}
+function fallbackCopy(txt,msg){
+  var ta=document.createElement('textarea');
+  ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast(msg); }catch(e){ toast('Long-press the code to copy'); }
+  document.body.removeChild(ta);
+}
+function importCodes(){
+  var raw=document.getElementById('pasteBox').value.split(/[\s\n]+/).filter(function(x){return x.length>6;});
+  if(!raw.length){ toast('Paste at least one code'); return; }
+  var ok=[], errs=[];
+  raw.forEach(function(c){
+    var cc=c.split('#').pop();
+    if(cc.indexOf('BSF1.')===0){ importPayload(cc); ok.push('full calendar'); return; }
+    var r=unpackMember(cc);
+    if(r.err){ errs.push(r.err); return; }
+    S.avail[r.mi]=r.avail; S.sub[r.mi]=true; ok.push(name(r.mi));
+  });
+  save(); paint();
+  document.getElementById('pasteBox').value='';
+  if(ok.length) toast('In: '+ok.join(', '));
+  if(errs.length) setTimeout(function(){ alert(errs.join('\n\n')); },420);
+}
+
+/* ---------- SETUP ---------- */
+function paintSetup(){
+  var virgin = !Object.keys(S.sub).length && !S.gigs.length;
+  document.getElementById('setupHint').innerHTML = virgin
+    ? '<div class="flag rv"><b>SET IT UP ONCE.</b> Check the line-up, set the window, add your gigs. Then hit Share and post the link.</div>' : '';
+
+  paintLiveBox();
+  document.getElementById('sBand').value=S.band;
+  document.getElementById('sStart').value=S.start;
+  document.getElementById('sWeeks').value=String(Math.round(S.days/7));
+
+  var h='';
+  for(var i=0;i<S.members.length;i++){
+    h+='<div class="memrow"><span class="n">'+(i+1)+'</span>'+
+       '<input value="'+esc(name(i))+'" oninput="renameMember('+i+',this.value)" placeholder="Name">'+
+       (me===i?'<span class="youtag">YOU</span>':'')+
+       (S.members.length>2?'<button class="x" onclick="removeMember('+i+')">✕</button>':'')+
+       '</div>';
+  }
+  document.getElementById('memberList').innerHTML=h;
+
+  document.getElementById('slotDefs').innerHTML=SLOT_ORDER.map(function(k){
+    var d=sdef(k), on=S.slots.indexOf(k)>-1;
+    return '<div class="slotdef">'+
+      '<div class="hd"><b>'+esc(d.n)+'</b>'+
+      '<button class="tgl'+(on?' on':'')+'" onclick="toggleSlot(\''+k+'\')">'+(on?'ON':'OFF')+'</button></div>'+
+      '<div class="times">'+
+        '<input type="time" value="'+esc(d.a)+'" onchange="setSlotTime(\''+k+'\',\'a\',this.value)">'+
+        '<span>→</span>'+
+        '<input type="time" value="'+esc(d.b)+'" onchange="setSlotTime(\''+k+'\',\'b\',this.value)">'+
+      '</div>'+
+      '<div class="tiny" style="margin-top:7px">shows as '+esc(t12range(d.a,d.b))+'</div>'+
+    '</div>';
+  }).join('');
+}
+function paintLiveBox(){
+  var chip=document.getElementById('liveChip'), box=document.getElementById('liveBox');
+  if(!chip||!box) return;
+  chip.innerHTML='<span class="dot '+LIVE.status+'"><i></i>'+esc(liveStatusLabel())+'</span>';
+
+  if(liveConfigured()){
+    var mems='';
+    for(var i=0;i<S.members.length;i++){
+      var t=(S.ts&&S.ts[i])?ago(S.ts[i]):'';
+      var stale=(S.ts&&S.ts[i])&&(Date.now()-S.ts[i]>1000*60*60*24*14);
+      mems+='<span class="pill '+(S.sub[i]?'in':'wait')+'">'+esc(name(i))+
+            (t?' <span'+(stale?' class="stale"':'')+'>· '+esc(t)+'</span>':' · —')+'</span>';
+    }
+    box.innerHTML=
+      '<div class="note">Everyone shares one calendar. Tick a slot and it lands on the others\' phones in about a second — no codes, and you can change your mind whenever you like.</div>'+
+      '<div class="tiny" style="margin-top:13px">Last updated</div><div class="who">'+mems+'</div>'+
+      '<div class="stack" style="margin-top:14px">'+
+        '<button class="btn alt" onclick="shareLive()">Send the band link</button>'+
+        '<button class="btn ghost" style="color:var(--paper);border-color:var(--paper)" onclick="copyLive()">Copy link</button>'+
+        '<button class="btn ghost" style="color:var(--blood);border-color:var(--blood)" onclick="liveGoOffline()">Switch live sync off</button>'+
+      '</div>'+
+      '<div class="tiny" style="margin-top:11px;word-break:break-all">Band ID '+esc(LIVE.id)+'</div>';
+    return;
+  }
+
+  box.innerHTML=
+    '<div class="note">Off right now, so availability moves by codes. Turn this on and everyone just taps — their slots appear on your screen straight away, and they can edit any time without sending anything.</div>'+
+    '<div class="note" style="margin-top:10px">You need a free Firebase database first. Follow <b>FIREBASE-SETUP.md</b>, then paste the URL it gives you.</div>'+
+    '<label class="fl" style="color:var(--paper-dim)">Firebase database URL</label>'+
+    '<input id="sDb" placeholder="https://…-default-rtdb.firebasedatabase.app" value="'+esc(LIVE.db||'')+'">'+
+    '<button class="btn alt" style="margin-top:12px" onclick="goLive()">Go live</button>'+
+    '<div class="tiny" style="margin-top:10px">Only the person setting it up does this once. Everyone else just opens the link.</div>';
+}
+function shareLive(){
+  if(!liveConfigured()){ toast('Not live yet'); return; }
+  doShare(liveLink(), S.band+' — practice room');
+}
+function copyLive(){
+  if(!liveConfigured()){ toast('Not live yet'); return; }
+  copy(liveLink(),'Band link copied');
+}
+
+function setSlotTime(k,which,val){
+  if(!val) return;
+  if(!S.slotDefs[k]) S.slotDefs[k]=JSON.parse(JSON.stringify(SLOT_FALLBACK[k]));
+  S.slotDefs[k][which]=val;
+  save(); metaChanged(false); paintSetup(); paintMe(); paintSlots(); paintGigs();
+  toast(sdef(k).n+' now '+t12range(sdef(k).a,sdef(k).b));
+}
+function renameMember(i,v){ S.members[i]=v; save(); metaChanged(false); paintHeader(); }
+function addMember(){
+  if(S.members.length>=12){ toast('Twelve is a choir, not a band'); return; }
+  if(!confirmBandWide('Add another member?')) return;
+  S.members.push(''); wipeAvail(); save(); metaChanged(true); paint(); toast('Added — ticks reset');
+}
+function removeMember(i){
+  if(!confirm('Drop '+name(i)+'? Everyone\'s ticks reset.')) return;
+  S.members.splice(i,1);
+  if(me===i) me=null; else if(me!==null&&me>i) me--;
+  wipeAvail(); save(); metaChanged(true); paint();
+}
+function toggleSlot(k){
+  var i=S.slots.indexOf(k);
+  if(!confirmBandWide((i>-1?'Switch off ':'Switch on ')+sdef(k).n+'?')) return;
+  if(i>-1){ if(S.slots.length===1){ toast('Keep at least one slot'); return; } S.slots.splice(i,1); }
+  else S.slots.push(k);
+  S.slots.sort(function(a,b){return SLOT_ORDER.indexOf(a)-SLOT_ORDER.indexOf(b);});
+  wipeAvail(); save(); metaChanged(true); paint();
+  toast(sdef(k).n+(S.slots.indexOf(k)>-1?' switched on':' switched off')+' — ticks reset');
+}
+function changeSchedule(field,val){
+  if(!confirmBandWide('Change the date window?')){ paintSetup(); return; }
+  S[field]= field==='days' ? +val : val;
+  wipeAvail(); save(); metaChanged(true); paint(); toast('Window changed — ticks reset');
+}
+function wipeAvail(){ S.avail={}; S.sub={}; S.locked={}; S.ts={}; }
+function resetAll(){
+  if(!confirm('Wipe the band, the window, the gigs and everyone\'s ticks?')) return;
+  liveDisconnect();
+  store.del(KEY); store.del(KEYME); store.del('bandPracticeFinder.v1');
+  store.del(KEYDB); store.del(KEYID);
+  LIVE.db=DEFAULT_DB||''; LIVE.id=''; LIVE.tree={}; setStatus('off');
+  S=blank(); me=null; save(); go('setup');
+}
+
+/* ============================================================
+   INBOUND LINKS
+   ============================================================ */
+function importPayload(p){
+  try{
+    if(p.indexOf('BSL1.')===0){                       // live band link
+      var L=JSON.parse(b64d(p.slice(5)));
+      if(!L.db||!L.id) return null;
+      joinLive(L.db,L.id);
+      return 'live';
+    }
+    if(p.indexOf('BSS1.')===0){
+      var o=JSON.parse(b64d(p.slice(5)));
+      S=blank();
+      S.band=o.b; S.members=o.m; S.start=o.s; S.days=o.d;
+      S.slots=o.t; if(o.sd) S.slotDefs=o.sd; S.gigs=o.g||[];
+      S=migrate(S); me=null; save(); return 'setup';
+    }
+    if(p.indexOf('BSF1.')===0){
+      var keep=me;
+      S=migrate(JSON.parse(b64d(p.slice(5))));
+      me=(keep!==null&&keep<S.members.length)?keep:null;
+      save(); return 'full';
+    }
+    if(p.indexOf('BSM1.')===0){
+      var r=unpackMember(p);
+      if(r.err){ alert(r.err); return null; }
+      S.avail[r.mi]=r.avail; S.sub[r.mi]=true; save(); return 'member';
+    }
+  }catch(e){ alert('That link could not be read. Ask for a fresh one.'); }
+  return null;
+}
+function handleHash(){
+  var h=location.hash.replace(/^#/,'');
+  if(!h) return null;
+  if(h.indexOf('BSS1.')===0 && S && (Object.keys(S.sub).length||S.gigs.length)){
+    var who='a band';
+    try{ who=JSON.parse(b64d(h.slice(5))).b; }catch(e){}
+    if(!confirm('This link sets up "'+who+'" and will replace what is on this phone. Go ahead?')){
+      history.replaceState(null,'',baseUrl()); return null;
+    }
+  }
+  var kind=importPayload(h);
+  history.replaceState(null,'',baseUrl());
+  return kind;
+}
+
+/* ============================================================
+   MISC
+   ============================================================ */
+/* ============================================================
+   LIVE SYNC — Firebase Realtime Database over plain REST.
+   No SDK: reads stream in over EventSource, writes are fetch PUTs.
+   Everyone writes only their own avail/<index> node, so two people
+   ticking at the same moment can never clobber each other.
+   ============================================================ */
+var DEFAULT_DB='https://notorious-dad-default-rtdb.firebaseio.com';   /* Paddy's project */
+var LIVE={
+  db:'', id:'', on:false, es:null, tree:{},
+  status:'off',             /* off | connecting | live | offline | error */
+  dirty:false, timer:null, retry:null, backoff:1000
+};
+var KEYDB=KEY+'.db', KEYID=KEY+'.id';
+
+function liveConfigured(){ return !!(LIVE.db && LIVE.id); }
+function liveBase(){ return String(LIVE.db).replace(/\/+$/,''); }
+function liveUrl(path){ return liveBase()+'/bands/'+LIVE.id+(path?'/'+path:'')+'.json'; }
+function newBandId(){
+  var s='', abc='abcdefghijkmnpqrstuvwxyz23456789';
+  for(var i=0;i<18;i++) s+=abc.charAt(Math.floor(Math.random()*abc.length));
+  return s;
+}
+function setStatus(s){ if(LIVE.status!==s){ LIVE.status=s; paintHeader(); paintSetup(); } }
+
+/* ---- connect / stream ---- */
+function liveConnect(){
+  if(!liveConfigured()) return;
+  if(String(location.protocol).indexOf('http')!==0){ setStatus('error'); return; }
+  liveDisconnect();
+  LIVE.on=true; setStatus('connecting');
+  if(!('EventSource' in window)){ livePoll(); return; }
+  try{
+    var es=new EventSource(liveUrl('')); LIVE.es=es;
+    es.addEventListener('put',   function(e){ liveEvent(e,true);  });
+    es.addEventListener('patch', function(e){ liveEvent(e,false); });
+    es.addEventListener('open',  function(){ LIVE.backoff=1000; setStatus('live'); });
+    es.onerror=function(){
+      if(!LIVE.on) return;
+      setStatus(navigator.onLine===false?'offline':'connecting');
+      liveDisconnect(true);
+      LIVE.retry=setTimeout(liveConnect, LIVE.backoff);
+      LIVE.backoff=Math.min(LIVE.backoff*2, 30000);
+    };
+  }catch(e){ livePoll(); }
+}
+function liveDisconnect(keepOn){
+  if(LIVE.es){ try{ LIVE.es.close(); }catch(e){} LIVE.es=null; }
+  if(LIVE.retry){ clearTimeout(LIVE.retry); LIVE.retry=null; }
+  if(!keepOn){ LIVE.on=false; }
+}
+function liveGoOffline(){
+  liveDisconnect(); LIVE.db=''; LIVE.id='';
+  store.del(KEYDB); store.del(KEYID);
+  setStatus('off'); paint(); toast('Live sync switched off');
+}
+/* fallback for browsers with no EventSource */
+function livePoll(){
+  setStatus('connecting');
+  var tick=function(){
+    if(!LIVE.on) return;
+    fetch(liveUrl(''),{cache:'no-store'}).then(function(r){return r.json();})
+      .then(function(d){ LIVE.tree=d||{}; setStatus('live'); adoptTree(); })
+      .catch(function(){ setStatus('offline'); })
+      .then(function(){ if(LIVE.on) LIVE.retry=setTimeout(tick,6000); });
+  };
+  tick();
+}
+function liveEvent(e,isPut){
+  var msg; try{ msg=JSON.parse(e.data); }catch(err){ return; }
+  if(!msg) return;
+  setStatus('live'); LIVE.backoff=1000;
+  var p=msg.path==null?'/':msg.path;
+  if(p==='/' && isPut){ LIVE.tree=msg.data||{}; }
+  else if(isPut){ setPath(LIVE.tree,p,msg.data); }
+  else {
+    var d=msg.data||{};
+    for(var k in d) if(Object.prototype.hasOwnProperty.call(d,k))
+      setPath(LIVE.tree, (p==='/'?'':p)+'/'+k, d[k]);
+  }
+  adoptTree();
+}
+function setPath(obj,path,val){
+  var parts=String(path).split('/').filter(function(x){return x!=='';});
+  if(!parts.length) return;
+  var cur=obj;
+  for(var i=0;i<parts.length-1;i++){
+    if(typeof cur[parts[i]]!=='object'||cur[parts[i]]===null) cur[parts[i]]={};
+    cur=cur[parts[i]];
+  }
+  var last=parts[parts.length-1];
+  if(val===null||val===undefined) delete cur[last]; else cur[last]=val;
+}
+
+/* ---- take what the server says and fold it into local state ---- */
+function adoptTree(){
+  var t=LIVE.tree||{}, changed=false;
+  if(t.meta){
+    var m=t.meta;
+    var sigBefore=sig();
+    S.band   = m.band   || S.band;
+    S.members= (m.members&&m.members.length) ? m.members.slice() : S.members;
+    S.start  = m.start  || S.start;
+    S.days   = m.days   || S.days;
+    S.slots  = (m.slots&&m.slots.length) ? m.slots.slice() : S.slots;
+    if(m.slotDefs) S.slotDefs=m.slotDefs;
+    S.gigs   = m.gigs ? m.gigs.slice() : [];
+    if(sig()!==sigBefore){ S.avail={}; S.sub={}; S.ts={}; }   // window moved under us
+    if(me!==null && me>=S.members.length){ me=null; store.del(KEYME); }
+    changed=true;
+  }
+  var av=t.avail||{};
+  for(var i=0;i<S.members.length;i++){
+    var rec=av[i];
+    if(i===me && LIVE.dirty) continue;                        // don't stomp my unsent taps
+    if(rec && typeof rec.cells==='string'){
+      S.avail[i]=unpackCells(rec.cells);
+      S.sub[i]=true;
+      if(!S.ts) S.ts={};
+      S.ts[i]=rec.ts||0;
+    } else if(!rec){
+      delete S.avail[i]; delete S.sub[i]; if(S.ts) delete S.ts[i];
+    }
+    changed=true;
+  }
+  S.locked = t.locked || {};
+  if(changed){ save(); paintSafely(); }
+}
+/* a remote update mid-typing must not yank the field out from under you */
+function paintSafely(){
+  var ae=document.activeElement;
+  var typing = ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT');
+  paintHeader(); paintSlots(); paintGigs(); paintShare();
+  if(!typing){ paintMe(); paintSetup(); }
+}
+
+/* ---- writes ---- */
+function livePut(path,body){
+  return fetch(liveUrl(path),{
+    method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  }).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return true;
+  });
+}
+function liveMeta(){
+  return {band:S.band, members:S.members, start:S.start, days:S.days,
+          slots:S.slots, slotDefs:S.slotDefs, gigs:S.gigs, sig:hash(sig()), ts:Date.now()};
+}
+function livePublishMeta(alsoWipe){
+  if(!liveConfigured()) return Promise.resolve();
+  setStatus('connecting');
+  var body={meta:liveMeta()};
+  if(alsoWipe){ body.avail=null; body.locked=null; }
+  return (alsoWipe
+      ? livePut('', body)
+      : livePut('meta', body.meta)
+    ).then(function(){ setStatus('live'); })
+     .catch(function(){ setStatus('offline'); toast('Could not reach the band — will retry'); });
+}
+/* my own taps: mark dirty, then push once the tapping stops */
+function liveMineChanged(){
+  if(!liveConfigured()||me===null) return;
+  LIVE.dirty=true;
+  clearTimeout(LIVE.timer);
+  LIVE.timer=setTimeout(livePushMine,700);
+}
+function livePushMine(){
+  if(!liveConfigured()||me===null) return Promise.resolve();
+  setStatus('connecting');
+  return livePut('avail/'+me, {cells:packCells(me), ts:Date.now(), name:name(me)})
+    .then(function(){
+      LIVE.dirty=false; setStatus('live');
+      if(!S.ts) S.ts={}; S.ts[me]=Date.now(); save();
+    })
+    .catch(function(){
+      setStatus('offline');
+      clearTimeout(LIVE.timer);
+      LIVE.timer=setTimeout(livePushMine,5000);   // keep trying until it lands
+    });
+}
+function livePushLocked(){
+  if(!liveConfigured()) return Promise.resolve();
+  return livePut('locked', Object.keys(S.locked).length?S.locked:null).catch(function(){});
+}
+
+/* ---- going live for the first time ---- */
+function goLive(){
+  var db=(document.getElementById('sDb').value||'').trim();
+  if(!/^https?:\/\/([\w.-]+\.(firebasedatabase\.app|firebaseio\.com)|localhost|127\.0\.0\.1)(:\d+)?\/?$/i.test(db)){
+    alert('That does not look like a Firebase database URL.\n\nIt should look like:\nhttps://your-project-default-rtdb.europe-west1.firebasedatabase.app');
+    return;
+  }
+  if(String(location.protocol).indexOf('http')!==0){
+    alert('Live sync needs the app to be on a web address. Open the GitHub Pages URL rather than the local file.');
+    return;
+  }
+  LIVE.db=db; LIVE.id=newBandId();
+  store.set(KEYDB,LIVE.db); store.set(KEYID,LIVE.id);
+  setStatus('connecting');
+  livePut('', {meta:liveMeta()})
+    .then(function(){
+      liveConnect();
+      if(me!==null && S.sub[me]) livePushMine();
+      paint(); go('share');
+      toast('You are live — send the link');
+    })
+    .catch(function(err){
+      LIVE.db=''; LIVE.id=''; store.del(KEYDB); store.del(KEYID); setStatus('error');
+      alert('Could not write to that database.\n\n'+err.message+
+            '\n\nCheck the URL, and that the security rules from the setup guide are published.');
+    });
+}
+/* meta edits: name, line-up, window, slots, gigs. Debounced for typing. */
+var metaTimer=null;
+function metaChanged(wipe){
+  if(!liveConfigured()) return;
+  clearTimeout(metaTimer);
+  if(wipe){ livePublishMeta(true); return; }
+  metaTimer=setTimeout(function(){ livePublishMeta(false); }, 700);
+}
+/* destructive changes hit everybody, so say so out loud */
+function confirmBandWide(what){
+  if(!liveConfigured()) return true;
+  return confirm(what+'\n\nYou are live, so this changes it for the whole band and clears everyone\'s ticks. Carry on?');
+}
+function liveLink(){ return baseUrl()+'#BSL1.'+b64e(JSON.stringify({db:LIVE.db,id:LIVE.id})); }
+function joinLive(db,id){
+  LIVE.db=db; LIVE.id=id;
+  store.set(KEYDB,db); store.set(KEYID,id);
+  liveConnect();
+}
+function liveStatusLabel(){
+  return {off:'Codes only', connecting:'Syncing…', live:'Live', offline:'No signal', error:'Sync error'}[LIVE.status]||'';
+}
+function ago(ts){
+  if(!ts) return '';
+  var s=Math.floor((Date.now()-ts)/1000);
+  if(s<90) return 'just now';
+  var m=Math.floor(s/60); if(m<60) return m+'m ago';
+  var h=Math.floor(m/60); if(h<36) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+window.addEventListener('online', function(){ if(liveConfigured()){ liveConnect(); if(LIVE.dirty) livePushMine(); } });
+window.addEventListener('offline',function(){ if(LIVE.on) setStatus('offline'); });
+
+/* Home-screen nudge. Only when served over http(s), only in a browser tab,
+   and only until it's dismissed. iOS has no install prompt, so we spell it out. */
+function installHint(){
+  try{
+    if(String(location.protocol).indexOf('http')!==0) return '';
+    if(navigator.standalone) return '';
+    if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return '';
+    if(store.get(KEY+'.noinstall')) return '';
+    var ios=/iPad|iPhone|iPod/.test(navigator.userAgent||'');
+    var how = ios ? 'tap Share <b>⬆</b> then <b>Add to Home Screen</b>'
+                  : 'tap the menu <b>⋮</b> then <b>Install app</b>';
+    return '<div class="flag rv" style="display:flex;gap:10px;align-items:flex-start">'+
+      '<span style="flex:1"><b>PUT IT ON YOUR HOME SCREEN.</b> In your browser, '+how+
+      '. Opens full-screen, works with no signal.</span>'+
+      '<button class="x" style="margin:-4px -2px 0 0" onclick="dismissInstall()">✕</button></div>';
+  }catch(e){ return ''; }
+}
+function dismissInstall(){ store.set(KEY+'.noinstall','1'); paintMe(); }
+
+function esc(s){ return String(s===undefined||s===null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+var tt=null;
+function toast(msg){
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(tt); tt=setTimeout(function(){ el.classList.remove('show'); },2300);
+}
+window.addEventListener('hashchange',function(){
+  var k=handleHash();
+  if(k==='live'){ go('me'); toast('Joined the band'); }
+  else if(k==='setup'){ go('me'); toast('Loaded '+S.band); }
+  else if(k){ go('slots'); toast('Merged'); }
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+load();
+var inbound=handleHash();
+var start = (inbound==='setup'||inbound==='live') ? 'me'
+          : inbound ? 'slots'
+          : (me===null && !S.members[0] ? 'setup' : 'me');
+go(start);
+
+/* if this phone already knows a band, reconnect on every open */
+if(liveConfigured() && String(location.protocol).indexOf('http')===0) liveConnect();
+
+setTimeout(function(){
+  var sp=document.getElementById('splash');
+  if(sp) sp.classList.add('gone');
+  armReveals();
+  if(inbound==='live') toast('Joined the band — pick your name');
+  else if(inbound==='setup') toast('Loaded '+S.band+' — pick your name');
+  else if(inbound) toast('Calendar merged');
+}, 950);
+/* offline support — only when served over http(s), never from a local file */
+if(String(location.protocol).indexOf('http')===0 && 'serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
