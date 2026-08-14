@@ -116,7 +116,7 @@ main{max-width:640px;margin:0 auto;padding:16px 13px 30px}
 
 /* =================== REVEALS =================== */
 .rv{opacity:0;transform:translateY(20px) rotate(-1.2deg)}
-.rv.in{opacity:1;transform:none;transition:opacity .5s ease,transform .55s cubic-bezier(.16,1,.3,1)}
+.rv.in{opacity:1;transform:none;transition:opacity .34s ease,transform .4s cubic-bezier(.16,1,.3,1)}
 @media (prefers-reduced-motion:reduce){
   .rv{opacity:1;transform:none} #grain{animation:none} .ticker div{animation:none}
 }
@@ -772,7 +772,7 @@ function armReveals(){
   for(var j=0;j<nodes.length;j++){
     var el=nodes[j];
     el.classList.remove('in');
-    el.style.transitionDelay=(Math.min(j,6)*70)+'ms';
+    el.style.transitionDelay=(Math.min(j,5)*45)+'ms';
     io.observe(el);
   }
 }
@@ -1385,6 +1385,13 @@ function paintSafely(){
   var typing = ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT');
   paintHeader(); paintSlots(); paintGigs(); paintShare();
   if(!typing){ paintMe(); paintSetup(); }
+  revealNow();   // repaints build fresh nodes; without this they stay at opacity 0
+}
+/* show everything in the current view at once, no staggered entrance —
+   used for sync-driven repaints, where re-animating the list would flicker */
+function revealNow(){
+  var n=document.querySelectorAll('.view.on .rv');
+  for(var i=0;i<n.length;i++){ n[i].style.transitionDelay='0ms'; n[i].classList.add('in'); }
 }
 
 /* ---- writes ---- */
