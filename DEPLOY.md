@@ -77,5 +77,6 @@ Without that bump, anyone who installed it keeps the cached copy.
 
 - **No server, no accounts, no database.** Availability lives on each person's own phone. Nothing is uploaded anywhere, which is why the codes exist — they're how data moves between phones.
 - **Fonts** (Anton, Archivo Black, Space Mono) load from Google Fonts on first open, then get cached for offline use. If they ever fail to load, the app falls back to condensed system faces and still works.
-- **Changing the date window or switching a time slot on/off resets everyone's ticks** — agree those before sending the setup link out.
+- **The date window looks after itself.** It starts today, rolls forward daily, and stretches to cover your furthest booked gig plus a week. You set only a minimum horizon.
+- **Nothing resets anyone's ticks.** Availability is keyed to real dates, so window, slot and line-up changes are all safe.
 - **Changing slot *times*** (say Evening to 7pm) is safe and breaks nothing.

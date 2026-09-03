@@ -103,7 +103,7 @@ Tell them to add it to their home screen too — the app prompts them.
 
 **Editing later just works.** Tap a slot again and everyone's view updates. The Settings and Share screens both show *"Ron · 2d ago"* so you can see whose availability has gone stale before a gig.
 
-**Changing the window, the slots or the line-up wipes everyone's ticks** — it has to, because the grid changes shape. The app now warns you that you're about to do it to four other people. Changing slot *times* is still safe.
+**Changing the window, the slots or the line-up is safe.** Availability is stored against real dates, so widening the window, switching a time slot on or off, or adding a member leaves every existing tick where it was. Dropping someone removes only their availability.
 
 **Locked practices sync too**, so when you 📌 a night the whole band sees it booked.
 

@@ -1,6 +1,6 @@
 /* Notorious D.A.D. — offline cache.
    Bump CACHE when you change index.html, otherwise phones keep the old copy. */
-const CACHE = 'notorious-dad-v7';
+const CACHE = 'notorious-dad-v8';
 
 const SHELL = [
   './',
