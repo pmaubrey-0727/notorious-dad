@@ -525,15 +525,14 @@ nav button.on i{transform:rotate(-6deg)}
 
   <div class="panel rv">
     <h2>The window</h2>
-    <label class="fl">Start from</label>
-    <input id="sStart" type="date" onchange="changeSchedule('start',this.value)">
-    <label class="fl">How far ahead</label>
-    <select id="sWeeks" onchange="changeSchedule('days',this.value*7)">
-      <option value="2">2 weeks</option><option value="4">4 weeks</option>
-      <option value="6">6 weeks</option><option value="8">8 weeks</option>
-      <option value="12">12 weeks</option>
+    <div class="note" id="winInfo"></div>
+    <label class="fl">Show at least</label>
+    <select id="sWeeks" onchange="changeSchedule('weeks',this.value)">
+      <option value="2">2 weeks ahead</option><option value="4">4 weeks ahead</option>
+      <option value="6">6 weeks ahead</option><option value="8">8 weeks ahead</option>
+      <option value="12">12 weeks ahead</option>
     </select>
-    <div class="note" style="margin-top:11px">⚠ Changing the window resets ticks. Agree it before the link goes out.</div>
+    <div class="note" style="margin-top:11px">It always starts today and rolls forward on its own. Book a gig further out and it stretches to reach it — <b>nobody's ticks are lost</b> when it does.</div>
   </div>
 
   <div class="panel dark rv">
@@ -604,13 +603,34 @@ function slotName(i){ return sdef(S.slots[i]).n; }
 function slotTime(i){ var d=sdef(S.slots[i]); return t12range(d.a,d.b); }
 function slotAbbr(i){ return sdef(S.slots[i]).n.slice(0,3).toUpperCase(); }
 
+/* ------------------------------------------------------------
+   THE WINDOW IS DERIVED, NOT STORED.
+   It always starts today and always runs far enough ahead to
+   cover the last gig on the books, so it can never go stale.
+   ------------------------------------------------------------ */
+function winStart(){ return todayISO(); }
+function winDays(){
+  var min=Math.max(7,(S.weeks||4)*7), t=todayISO(), need=min;
+  (S.gigs||[]).forEach(function(g){
+    if(!g.date || g.date<t) return;
+    need=Math.max(need, daysBetween(t,g.date)+8);   // a clear week past the gig
+  });
+  return Math.min(need, 400);
+}
+function lastGig(){
+  var t=todayISO(), last=null;
+  (S.gigs||[]).forEach(function(g){ if(g.date>=t && (!last||g.date>last)) last=g.date; });
+  return last;
+}
+/* availability keys are absolute: "2026-09-05|E" */
+function ck(dateISO,slotKey){ return dateISO+'|'+slotKey; }
+
 function blank(){
   return {
-    v:2,
+    v:3,
     band:'Notorious D.A.D.',
     members:['Francois','Matt','Ron','Tim','Paddy'],
-    start:todayISO(),
-    days:28,
+    weeks:4,
     slots:['M','A','E'],
     slotDefs:JSON.parse(JSON.stringify(SLOT_FALLBACK)),
     gigs:[],
@@ -635,7 +655,33 @@ function migrate(o){
   // a roster that was never filled in gets the real line-up
   if(Array.isArray(o.members) && o.members.length===5 &&
      o.members.every(function(x){ return !x || !String(x).trim(); })) o.members=LINEUP.slice();
-  o.v=2; return o;
+
+  /* v2 -> v3: ticks were stored as "dayOffset-slotIndex" against a frozen
+     start date. Convert them to absolute "YYYY-MM-DD|SLOT" so the window
+     can move afterwards without losing anybody's availability. */
+  if((o.v||2)<3){
+    if(!o.weeks) o.weeks=Math.max(1,Math.round((o.days||28)/7));
+    var st=o.start, sl=o.slots;
+    if(st && sl){
+      var conv=function(map){
+        var out={};
+        for(var k in map){
+          if(!Object.prototype.hasOwnProperty.call(map,k)) continue;
+          var p=String(k).split('-');
+          if(p.length!==2) { out[k]=map[k]; continue; }   // already absolute
+          var di=+p[0], si=+p[1];
+          if(isNaN(di)||isNaN(si)||!sl[si]) continue;
+          out[ck(iso(addDays(st,di)),sl[si])]=1;
+        }
+        return out;
+      };
+      for(var m in o.avail) if(Object.prototype.hasOwnProperty.call(o.avail,m)) o.avail[m]=conv(o.avail[m]);
+      o.locked=conv(o.locked);
+    }
+    delete o.start; delete o.days;
+  }
+  if(!o.weeks) o.weeks=4;
+  o.v=3; return o;
 }
 function load(){
   var raw=null;
@@ -659,39 +705,77 @@ function bytesToB64(b){ var s=''; for(var i=0;i<b.length;i++) s+=String.fromChar
 function b64ToBytes(str){ str=String(str).replace(/-/g,'+').replace(/_/g,'/'); while(str.length%4)str+='=';
   var bin=atob(str),o=[]; for(var i=0;i<bin.length;i++)o.push(bin.charCodeAt(i)); return o; }
 
-/* signature deliberately excludes slot TIMES, so editing 6.30pm -> 7pm
-   never invalidates a code somebody already sent you */
-function sig(){ return S.start+'|'+S.days+'|'+S.slots.join(',')+'|'+S.members.length; }
 function hash(str){ var h=5381; for(var i=0;i<str.length;i++){ h=((h*33)^str.charCodeAt(i))>>>0; } return h.toString(36).slice(0,4); }
-function cellCount(){ return S.days*S.slots.length; }
-function keyAt(i){ return Math.floor(i/S.slots.length)+'-'+(i%S.slots.length); }
 
-/* one bit per date+slot, packed to base64 — used by both the offline
-   codes and the live sync, so there is only ever one encoder to trust */
+/* The bit grid is anchored to a FIXED calendar, not to the current window.
+   That is the whole point: the window can slide forward, stretch to reach a
+   new gig, or gain a time slot, and every tick already recorded still lines
+   up. Only the line-up size can invalidate a code. */
+var EPOCH='2026-01-01', EPOCH_DAYS=1024;
+function epochIndex(dateISO,slotKey){
+  var d=daysBetween(EPOCH,dateISO), s=SLOT_ORDER.indexOf(slotKey);
+  if(d<0||d>=EPOCH_DAYS||s<0) return -1;
+  return d*SLOT_ORDER.length+s;
+}
+function epochKey(i){
+  return ck(iso(addDays(EPOCH,Math.floor(i/SLOT_ORDER.length))), SLOT_ORDER[i%SLOT_ORDER.length]);
+}
+function sig(){ return 'v3|'+S.members.length; }
+
 function packCells(mi){
-  var n=cellCount(), bytes=[], a=S.avail[mi]||{};
-  for(var i=0;i<n;i+=8){ var b=0;
-    for(var j=0;j<8&&i+j<n;j++){ if(a[keyAt(i+j)]) b|=(1<<j); }
-    bytes.push(b);
+  var n=EPOCH_DAYS*SLOT_ORDER.length, bytes=new Array(Math.ceil(n/8)), a=S.avail[mi]||{};
+  for(var i=0;i<bytes.length;i++) bytes[i]=0;
+  for(var k in a){
+    if(!Object.prototype.hasOwnProperty.call(a,k)||!a[k]) continue;
+    var p=String(k).split('|'); if(p.length!==2) continue;
+    var idx=epochIndex(p[0],p[1]); if(idx<0) continue;
+    bytes[Math.floor(idx/8)]|=(1<<(idx%8));
   }
-  return bytesToB64(bytes);
+  // trim trailing empty bytes so the code stays short
+  var last=bytes.length; while(last>0 && bytes[last-1]===0) last--;
+  return bytesToB64(bytes.slice(0,last));
 }
 function unpackCells(b64){
-  var bytes=b64ToBytes(b64||''), n=cellCount(), a={};
-  for(var i=0;i<n;i++){ var b=bytes[Math.floor(i/8)]||0; if(b&(1<<(i%8))) a[keyAt(i)]=1; }
+  var bytes=b64ToBytes(b64||''), a={};
+  for(var i=0;i<bytes.length*8;i++){
+    if(bytes[Math.floor(i/8)]&(1<<(i%8))) a[epochKey(i)]=1;
+  }
   return a;
 }
-function packMember(mi){ return 'BSM1.'+mi+'.'+hash(sig())+'.'+packCells(mi); }
+/* decode the old window-relative format, for data written before this change */
+function unpackLegacy(b64,startISO,slots){
+  var bytes=b64ToBytes(b64||''), a={}, ns=(slots||[]).length;
+  if(!startISO||!ns) return a;
+  for(var i=0;i<bytes.length*8;i++){
+    if(!(bytes[Math.floor(i/8)]&(1<<(i%8)))) continue;
+    var d=Math.floor(i/ns), s=i%ns;
+    if(!slots[s]) continue;
+    a[ck(iso(addDays(startISO,d)),slots[s])]=1;
+  }
+  return a;
+}
+
+/* Wire form carries its own version inside the string ("3:<base64>").
+   Keeping it in the value rather than a sibling field means the existing
+   Firebase rules — which reject unknown fields — need no change. */
+function wireCells(mi){ return '3:'+packCells(mi); }
+function readCells(str,legacyStart,legacySlots){
+  str=String(str||'');
+  if(str.indexOf('3:')===0) return unpackCells(str.slice(2));
+  return unpackLegacy(str,legacyStart,legacySlots);
+}
+function packMember(mi){ return 'BSM3.'+mi+'.'+hash(sig())+'.'+packCells(mi); }
 function unpackMember(code){
   var p=String(code).trim().split('.');
-  if(p.length!==4||p[0]!=='BSM1') return {err:'That is not an availability code.'};
+  if(p.length!==4||(p[0]!=='BSM3'&&p[0]!=='BSM1')) return {err:'That is not an availability code.'};
   var mi=+p[1];
   if(isNaN(mi)||mi<0||mi>=S.members.length) return {err:'That code belongs to somebody who is not in this line-up.'};
-  if(p[2]!==hash(sig())) return {err:(S.members[mi]||('Member '+(mi+1)))+' sent a code for a different date window. Re-send them the setup link.'};
+  if(p[0]==='BSM1') return {mi:mi,avail:unpackLegacy(p[3],winStart(),S.slots)};
+  if(p[2]!==hash(sig())) return {err:(S.members[mi]||('Member '+(mi+1)))+' sent a code for a different line-up. Re-send them the band link.'};
   return {mi:mi,avail:unpackCells(p[3])};
 }
 function setupPayload(){
-  return 'BSS1.'+b64e(JSON.stringify({b:S.band,m:S.members,s:S.start,d:S.days,t:S.slots,sd:S.slotDefs,g:S.gigs}));
+  return 'BSS1.'+b64e(JSON.stringify({b:S.band,m:S.members,w:S.weeks,t:S.slots,sd:S.slotDefs,g:S.gigs}));
 }
 function fullPayload(){ return 'BSF1.'+b64e(JSON.stringify(S)); }
 function baseUrl(){ return location.href.split('#')[0]; }
@@ -701,10 +785,11 @@ function baseUrl(){ return location.href.split('#')[0]; }
    ============================================================ */
 function results(){
   var out=[], n=S.members.length, today=todayISO();
-  for(var d=0; d<S.days; d++){
-    var date=addDays(S.start,d), di=iso(date);
+  var start=winStart(), days=winDays();
+  for(var d=0; d<days; d++){
+    var date=addDays(start,d), di=iso(date);
     for(var t=0;t<S.slots.length;t++){
-      var k=d+'-'+t, yes=[], no=[], wait=[];
+      var k=ck(di,S.slots[t]), yes=[], no=[], wait=[];
       for(var m=0;m<n;m++){
         if(S.avail[m]&&S.avail[m][k]) yes.push(m);
         else if(S.sub[m]) no.push(m);
@@ -854,16 +939,16 @@ function paintMe(){
   if(me===null){ g.innerHTML='<div class="blank"><b>Name first</b>Nothing to tick until we know who you are.</div>'; return; }
 
   document.getElementById('meRangeLbl').textContent=
-    fmtDay(parseISO(S.start))+' → '+fmtDay(addDays(S.start,S.days-1));
+    fmtDay(parseISO(winStart()))+' → '+fmtDay(addDays(winStart(),winDays()-1));
 
-  var html='', today=todayISO();
-  for(var d=0; d<S.days; d++){
-    var date=addDays(S.start,d), wknd=(date.getDay()===0||date.getDay()===6);
+  var html='', today=todayISO(), start=winStart(), days=winDays();
+  for(var d=0; d<days; d++){
+    var date=addDays(start,d), wknd=(date.getDay()===0||date.getDay()===6);
     var past=iso(date)<today;
     html+='<div class="dayrow'+(wknd?' wknd':'')+(past?' gone':'')+'">'+
           '<div class="dl"><b>'+fmtDay(date)+'</b><i>'+(past?'gone':(wknd?'weekend':'&nbsp;'))+'</i></div><div class="slots">';
     for(var t=0;t<S.slots.length;t++){
-      var k=d+'-'+t, on=!!(S.avail[me]&&S.avail[me][k]);
+      var k=ck(iso(date),S.slots[t]), on=!!(S.avail[me]&&S.avail[me][k]);
       html+='<button class="slot'+(on?' yes':'')+'" onclick="toggleMe(\''+k+'\')" title="'+esc(slotName(t)+' '+slotTime(t))+'">'+
             esc(slotAbbr(t))+'<em>'+esc(slotTime(t))+'</em></button>';
     }
@@ -886,17 +971,16 @@ function toggleMe(k){
 function bulkMe(on){
   if(me===null){ toast('Pick your name first'); return; }
   S.avail[me]={};
-  if(on){ for(var i=0;i<cellCount();i++) S.avail[me][keyAt(i)]=1; }
+  if(on){ results().forEach(function(x){ if(!x.past) S.avail[me][x.key]=1; }); }
   S.sub[me]=true; save(); liveMineChanged(); paintMe();
   stagger(document.getElementById('meGrid'),'.slot');
   toast(on?'All in':'Wiped');
 }
 function bulkEvenings(){
   if(me===null){ toast('Pick your name first'); return; }
-  var ei=S.slots.indexOf('E');
-  if(ei<0){ toast('Evening slot is switched off'); return; }
+  if(S.slots.indexOf('E')<0){ toast('Evening slot is switched off'); return; }
   S.avail[me]={};
-  for(var d=0;d<S.days;d++) S.avail[me][d+'-'+ei]=1;
+  results().forEach(function(x){ if(!x.past && S.slots[x.t]==='E') S.avail[me][x.key]=1; });
   S.sub[me]=true; save(); liveMineChanged(); paintMe();
   stagger(document.getElementById('meGrid'),'.slot');
   toast('Every night claimed');
@@ -965,7 +1049,7 @@ function toggleLock(k){
 function paintGigs(){
   var t=todayISO();
   var gs=S.gigs.slice().sort(function(a,b){return a.date<b.date?-1:1;});
-  var lockedDates=Object.keys(S.locked).map(function(k){ return iso(addDays(S.start,+k.split('-')[0])); });
+  var lockedDates=Object.keys(S.locked).map(function(k){ return String(k).split('|')[0]; });
 
   document.getElementById('gigList').innerHTML = gs.length ? gs.map(function(g){
     var dd=daysBetween(t,g.date);
@@ -1090,8 +1174,14 @@ function paintSetup(){
 
   paintLiveBox();
   document.getElementById('sBand').value=S.band;
-  document.getElementById('sStart').value=S.start;
-  document.getElementById('sWeeks').value=String(Math.round(S.days/7));
+  document.getElementById('sWeeks').value=String(S.weeks||4);
+
+  var g=lastGig(), d=winDays();
+  document.getElementById('winInfo').innerHTML =
+    'Showing <b>'+fmtDay(parseISO(winStart()))+'</b> → <b>'+fmtDay(addDays(winStart(),d-1))+'</b> ('+d+' days).'+
+    (g && daysBetween(todayISO(),g.date)+8>(S.weeks||4)*7
+      ? ' Stretched automatically to clear your last gig.'
+      : ' Add a gig further out and this stretches to cover it.');
 
   var h='';
   for(var i=0;i<S.members.length;i++){
@@ -1167,32 +1257,45 @@ function setSlotTime(k,which,val){
   toast(sdef(k).n+' now '+t12range(sdef(k).a,sdef(k).b));
 }
 function renameMember(i,v){ S.members[i]=v; save(); metaChanged(false); paintHeader(); }
+/* Nothing below destroys availability any more. Ticks are stored against
+   real dates, so widening the window, adding a slot or changing the
+   line-up leaves every existing tick exactly where it was. */
 function addMember(){
   if(S.members.length>=12){ toast('Twelve is a choir, not a band'); return; }
-  if(!confirmBandWide('Add another member?')) return;
-  S.members.push(''); wipeAvail(); save(); metaChanged(true); paint(); toast('Added — ticks reset');
+  S.members.push('');
+  save(); metaChanged(false); paint(); toast('Added — everyone\'s ticks kept');
 }
 function removeMember(i){
-  if(!confirm('Drop '+name(i)+'? Everyone\'s ticks reset.')) return;
+  if(!confirm('Drop '+name(i)+' from the line-up?\n\nTheir availability goes with them. Everyone else keeps theirs.')) return;
   S.members.splice(i,1);
+  // availability is keyed by member index, so shift everyone above down one
+  var av={}, sub={}, ts={};
+  for(var m=0;m<S.members.length+1;m++){
+    if(m===i) continue;
+    var to=m>i?m-1:m;
+    if(S.avail[m]) av[to]=S.avail[m];
+    if(S.sub[m])   sub[to]=S.sub[m];
+    if(S.ts&&S.ts[m]) ts[to]=S.ts[m];
+  }
+  S.avail=av; S.sub=sub; S.ts=ts;
   if(me===i) me=null; else if(me!==null&&me>i) me--;
-  wipeAvail(); save(); metaChanged(true); paint();
+  save();
+  if(liveConfigured()) livePut('', {meta:liveMeta(), avail:liveAvailPayload(), locked:Object.keys(S.locked).length?S.locked:null}).catch(function(){});
+  paint();
 }
 function toggleSlot(k){
   var i=S.slots.indexOf(k);
-  if(!confirmBandWide((i>-1?'Switch off ':'Switch on ')+sdef(k).n+'?')) return;
   if(i>-1){ if(S.slots.length===1){ toast('Keep at least one slot'); return; } S.slots.splice(i,1); }
   else S.slots.push(k);
   S.slots.sort(function(a,b){return SLOT_ORDER.indexOf(a)-SLOT_ORDER.indexOf(b);});
-  wipeAvail(); save(); metaChanged(true); paint();
-  toast(sdef(k).n+(S.slots.indexOf(k)>-1?' switched on':' switched off')+' — ticks reset');
+  save(); metaChanged(false); paint();
+  toast(sdef(k).n+(S.slots.indexOf(k)>-1?' switched on':' switched off'));
 }
 function changeSchedule(field,val){
-  if(!confirmBandWide('Change the date window?')){ paintSetup(); return; }
-  S[field]= field==='days' ? +val : val;
-  wipeAvail(); save(); metaChanged(true); paint(); toast('Window changed — ticks reset');
+  S[field]=+val || 4;
+  save(); metaChanged(false); paint();
+  toast('Now showing '+winDays()+' days');
 }
-function wipeAvail(){ S.avail={}; S.sub={}; S.locked={}; S.ts={}; }
 function resetAll(){
   if(!confirm('Wipe the band, the window, the gigs and everyone\'s ticks?')) return;
   liveDisconnect();
@@ -1216,7 +1319,7 @@ function importPayload(p){
     if(p.indexOf('BSS1.')===0){
       var o=JSON.parse(b64d(p.slice(5)));
       S=blank();
-      S.band=o.b; S.members=o.m; S.start=o.s; S.days=o.d;
+      S.band=o.b; S.members=o.m; S.weeks=o.w||Math.round((o.d||28)/7);
       S.slots=o.t; if(o.sd) S.slotDefs=o.sd; S.gigs=o.g||[];
       S=migrate(S); me=null; save(); return 'setup';
     }
@@ -1348,17 +1451,16 @@ function setPath(obj,path,val){
 /* ---- take what the server says and fold it into local state ---- */
 function adoptTree(){
   var t=LIVE.tree||{}, changed=false;
+  var legacyStart=null, legacySlots=null;
   if(t.meta){
     var m=t.meta;
-    var sigBefore=sig();
     S.band   = m.band   || S.band;
     S.members= (m.members&&m.members.length) ? m.members.slice() : S.members;
-    S.start  = m.start  || S.start;
-    S.days   = m.days   || S.days;
     S.slots  = (m.slots&&m.slots.length) ? m.slots.slice() : S.slots;
+    if(m.weeks) S.weeks=m.weeks;
     if(m.slotDefs) S.slotDefs=m.slotDefs;
     S.gigs   = m.gigs ? m.gigs.slice() : [];
-    if(sig()!==sigBefore){ S.avail={}; S.sub={}; S.ts={}; }   // window moved under us
+    if(!m.fmt){ legacyStart=m.start||null; legacySlots=(m.slots||[]).slice(); }
     if(me!==null && me>=S.members.length){ me=null; store.del(KEYME); }
     changed=true;
   }
@@ -1367,7 +1469,7 @@ function adoptTree(){
     var rec=av[i];
     if(i===me && LIVE.dirty) continue;                        // don't stomp my unsent taps
     if(rec && typeof rec.cells==='string'){
-      S.avail[i]=unpackCells(rec.cells);
+      S.avail[i]= readCells(rec.cells, legacyStart, legacySlots);
       S.sub[i]=true;
       if(!S.ts) S.ts={};
       S.ts[i]=rec.ts||0;
@@ -1376,7 +1478,19 @@ function adoptTree(){
     }
     changed=true;
   }
-  S.locked = t.locked || {};
+  /* locked keys were window-relative before v3 */
+  var lk=t.locked||{};
+  if(legacyStart && legacySlots && legacySlots.length){
+    var conv={};
+    for(var q in lk){
+      if(!Object.prototype.hasOwnProperty.call(lk,q)) continue;
+      var pp=String(q).split('-');
+      if(pp.length===2 && legacySlots[+pp[1]]) conv[ck(iso(addDays(legacyStart,+pp[0])),legacySlots[+pp[1]])]=1;
+      else conv[q]=lk[q];
+    }
+    lk=conv;
+  }
+  S.locked = lk;
   if(changed){ save(); paintSafely(); }
 }
 /* a remote update mid-typing must not yank the field out from under you */
@@ -1404,8 +1518,19 @@ function livePut(path,body){
   });
 }
 function liveMeta(){
-  return {band:S.band, members:S.members, start:S.start, days:S.days,
+  return {fmt:3, band:S.band, members:S.members, weeks:S.weeks||4,
+          start:winStart(), days:winDays(),          /* informational only now */
           slots:S.slots, slotDefs:S.slotDefs, gigs:S.gigs, sig:hash(sig()), ts:Date.now()};
+}
+/* everyone's slices, for the rare whole-tree write (e.g. dropping a member) */
+function liveAvailPayload(){
+  var out={}, any=false;
+  for(var i=0;i<S.members.length;i++){
+    if(!S.sub[i]) continue;
+    out[i]={cells:wireCells(i), ts:(S.ts&&S.ts[i])||Date.now(), name:name(i)};
+    any=true;
+  }
+  return any?out:null;
 }
 function livePublishMeta(alsoWipe){
   if(!liveConfigured()) return Promise.resolve();
@@ -1428,7 +1553,7 @@ function liveMineChanged(){
 function livePushMine(){
   if(!liveConfigured()||me===null) return Promise.resolve();
   setStatus('connecting');
-  return livePut('avail/'+me, {cells:packCells(me), ts:Date.now(), name:name(me)})
+  return livePut('avail/'+me, {cells:wireCells(me), ts:Date.now(), name:name(me)})
     .then(function(){
       LIVE.dirty=false; setStatus('live');
       if(!S.ts) S.ts={}; S.ts[me]=Date.now(); save();
