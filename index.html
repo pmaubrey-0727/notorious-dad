@@ -264,6 +264,17 @@ label.fl:first-child{margin-top:0}
 .gig .gi span{font-size:10.5px;letter-spacing:.5px;color:var(--ink-soft);display:block;margin-top:3px}
 .x{background:none;border:0;color:var(--ink);font-size:16px;cursor:pointer;padding:8px 4px;opacity:.5}
 
+/* suggested practices */
+.sugg{margin-bottom:16px}
+.sugg:last-child{margin-bottom:0}
+.sugg h3{margin:0 0 4px;font-family:var(--display);font-size:16px;letter-spacing:.7px;text-transform:uppercase}
+.sugg .need{font-size:10.5px;letter-spacing:.5px;color:var(--ink-soft);margin-bottom:4px}
+.sugg .pk{
+  flex:0 0 auto;width:42px;height:42px;background:var(--acid);border:2px solid var(--ink);
+  box-shadow:3px 3px 0 var(--ink);font-size:17px;cursor:pointer;
+}
+.sugg .pk:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+
 /* =================== MEMBER ROWS =================== */
 .memrow{display:flex;align-items:center;gap:7px;margin-bottom:8px}
 .memrow .n{
@@ -437,6 +448,11 @@ nav button.on i{transform:rotate(-6deg)}
   <div class="panel tilt rv">
     <h2>On the bill</h2>
     <div id="gigList"></div>
+  </div>
+
+  <div class="panel rv" id="suggPanel">
+    <h2>Suggested practices</h2>
+    <div id="suggList"></div>
   </div>
 
   <div class="panel dark rv">
@@ -1083,6 +1099,8 @@ function paintGigs(){
       '<button class="x" data-del-gig="'+esc(g.id)+'" aria-label="Remove gig">✕</button></div>';
   }).join('') : '<div class="blank"><b>No gigs booked</b>Add one and every slot starts counting down to it.</div>';
 
+  paintSuggestions();
+
   var up=results().filter(function(x){ return x.locked && !x.past; }).sort(function(a,b){ return a.d-b.d||a.t-b.t; });
   document.getElementById('lockedList').innerHTML = up.length ? up.map(function(x){
     return '<div class="gig" style="border-color:rgba(242,237,221,.2)">'+
@@ -1093,6 +1111,59 @@ function paintGigs(){
       '</span></div><button class="x" style="color:var(--paper)" onclick="toggleLock(\''+x.key+'\')">✕</button></div>';
   }).join('') : '<div class="blank" style="color:var(--paper-dim)"><b style="color:var(--acid)">Nothing booked</b>Hit 📌 on a slot to lock a practice.</div>';
 }
+/* ---------- SUGGESTED PRACTICES ---------- */
+/* For every upcoming gig that is short of its practice target, propose the
+   best free nights before it: one slot per day, fullest band first. */
+function bookedFor(g){
+  var t=todayISO();
+  return Object.keys(S.locked).filter(function(k){ var d=String(k).split('|')[0]; return d>=t && d<=g.date; }).length;
+}
+function suggestFor(g){
+  var need=Math.max(0,(g.target||0)-bookedFor(g)), lockedDays={}, best={};
+  Object.keys(S.locked).forEach(function(k){ lockedDays[String(k).split('|')[0]]=1; });
+  results().forEach(function(x){
+    if(x.past||x.tier==='no'||x.di>=g.date||lockedDays[x.di]) return;
+    var b=best[x.di];
+    if(!b||x.yes.length>b.yes.length) best[x.di]=x;
+  });
+  var pool=Object.keys(best).map(function(d){ return best[d]; })
+    .sort(function(a,b){ return b.yes.length-a.yes.length || a.d-b.d || a.t-b.t; });
+  return {need:need, pool:pool.length,
+          picks:pool.slice(0,need).sort(function(a,b){ return a.d-b.d || a.t-b.t; })};
+}
+function paintSuggestions(){
+  var panel=document.getElementById('suggPanel'), box=document.getElementById('suggList');
+  if(!panel||!box) return;
+  var t=todayISO(), blocks=[];
+  S.gigs.slice().sort(function(a,b){ return a.date<b.date?-1:1; }).forEach(function(g){
+    if(g.date<t) return;
+    var sg=suggestFor(g); if(!sg.need) return;
+    var rows=sg.picks.map(function(x){
+      var who = x.tier==='full' ? 'all '+S.members.length+' in' : 'without '+missing(x).join(', ');
+      return '<div class="gig"><div class="cd"><b>'+daysBetween(t,x.di)+'</b><span>DAYS</span></div>'+
+        '<div class="gi"><b>'+fmtDay(x.date)+'</b><span>'+esc(slotName(x.t))+' · '+esc(slotTime(x.t))+' · '+esc(who)+'</span></div>'+
+        '<button class="pk" data-lock-key="'+esc(x.key)+'" aria-label="Lock this practice">📌</button></div>';
+    }).join('');
+    var short = sg.picks.length<sg.need;
+    blocks.push('<div class="sugg"><h3>'+esc(g.name)+'</h3>'+
+      '<div class="need">'+sg.need+' more practice'+(sg.need===1?'':'s')+' to hit '+(g.target||0)+
+        (short?' — only '+sg.picks.length+' playable night'+(sg.picks.length===1?'':'s')+' so far. '+(S.members.every(function(m,i){ return S.sub[i]; })?'Ask the band to free up more nights.':'Chase whoever hasn\'t checked in.'):'.')+'</div>'+
+      rows+
+      (sg.picks.length>1?'<button class="btn ghost sm" style="margin-top:8px" data-lock-gig="'+esc(g.id)+'">Lock all '+sg.picks.length+'</button>':'')+
+      '</div>');
+  });
+  panel.style.display = blocks.length ? '' : 'none';
+  box.innerHTML=blocks.join('');
+}
+function lockSuggested(gigId){
+  var g=null; S.gigs.forEach(function(x){ if(x.id===gigId) g=x; });
+  if(!g) return;
+  var picks=suggestFor(g).picks;
+  picks.forEach(function(x){ if(!S.locked[x.key]){ S.locked[x.key]=1; livePushLocked(x.key); } });
+  save(); paintSlots(); paintGigs(); paintHeader();
+  toast(picks.length+' practice'+(picks.length===1?'':'s')+' locked 🥁');
+}
+
 function addGig(){
   var n=document.getElementById('gigName').value.trim();
   var d=document.getElementById('gigDate').value;
@@ -1724,8 +1795,10 @@ function toast(msg){
   clearTimeout(tt); tt=setTimeout(function(){ el.classList.remove('show'); },2300);
 }
 document.addEventListener('click',function(e){
-  var b=e.target.closest&&e.target.closest('[data-del-gig]');
-  if(b) delGig(b.getAttribute('data-del-gig'));
+  var t=e.target.closest?e.target:null; if(!t) return;
+  var b=t.closest('[data-del-gig]');  if(b){ delGig(b.getAttribute('data-del-gig')); return; }
+  b=t.closest('[data-lock-key]');     if(b){ toggleLock(b.getAttribute('data-lock-key')); return; }
+  b=t.closest('[data-lock-gig]');     if(b){ lockSuggested(b.getAttribute('data-lock-gig')); }
 });
 window.addEventListener('hashchange',function(){
   var k=handleHash();
