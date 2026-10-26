@@ -1110,7 +1110,73 @@ function paintGigs(){
       (x.tier==='full'?'all '+S.members.length+' in':(x.tier==='partial'?'without '+missing(x).join(', '):x.yes.length+' of '+S.members.length))+
       '</span></div><button class="x" style="color:var(--paper)" onclick="toggleLock(\''+x.key+'\')">✕</button></div>';
   }).join('') : '<div class="blank" style="color:var(--paper-dim)"><b style="color:var(--acid)">Nothing booked</b>Hit 📌 on a slot to lock a practice.</div>';
+  var hasUpcomingGig=S.gigs.some(function(g){ return g.date>=t; });
+  if(up.length||hasUpcomingGig)
+    document.getElementById('lockedList').innerHTML+=
+      '<button class="btn alt sm" style="margin-top:12px" data-ics>Add to calendar</button>'+
+      '<div class="tiny" style="margin-top:8px;color:var(--paper-dim)">Locked practices'+(hasUpcomingGig?' and gigs':'')+' as a calendar file.</div>';
 }
+/* ---------- CALENDAR EXPORT (.ics) ---------- */
+/* Locked practices become timed events, gigs become all-day events. Times are
+   "floating" (no timezone), so they land at the same clock time wherever the
+   file is opened. UIDs are stable, so re-importing updates rather than duplicates. */
+function icsEsc(v){ return String(v==null?'':v).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n'); }
+function icsFold(line){                       // max 75 octets per line, continuation lines start with a space
+  var out='', cur='', bytes=0;
+  for(var i=0;i<line.length;){
+    var cp=line.codePointAt(i), ch=String.fromCodePoint(cp), n=cp<0x80?1:cp<0x800?2:cp<0x10000?3:4;
+    if(bytes+n>(out?74:75)){ out+=(out?'\r\n ':'')+cur; cur=''; bytes=0; }
+    cur+=ch; bytes+=n; i+=ch.length;
+  }
+  return out+(out?'\r\n ':'')+cur;
+}
+function icsDate(di){ return String(di).replace(/-/g,''); }
+function icsTime(t){ return String(t||'00:00').replace(':','')+'00'; }
+function icsStamp(){ return new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''); }
+function buildICS(){
+  var t=todayISO(), stamp=icsStamp(), ev=[];
+  results().forEach(function(x){
+    if(!x.locked||x.past) return;
+    var d=sdef(S.slots[x.t]), a=d.a, b=d.b, endDay=x.di;
+    if(b<=a) endDay=iso(addDays(x.di,1));                 // runs past midnight
+    var who = x.tier==='full' ? 'All '+S.members.length+' in.' : 'In: '+(x.yes.map(name).join(', ')||'nobody')+'. Missing: '+missing(x).join(', ')+'.';
+    ev.push(['BEGIN:VEVENT','UID:prac-'+x.di+'-'+S.slots[x.t]+'@notorious-dad','DTSTAMP:'+stamp,
+      'DTSTART:'+icsDate(x.di)+'T'+icsTime(a),'DTEND:'+icsDate(endDay)+'T'+icsTime(b),
+      'SUMMARY:'+icsEsc((S.band||'Band')+' practice'),'DESCRIPTION:'+icsEsc(who),'END:VEVENT']);
+  });
+  S.gigs.forEach(function(g){
+    if(g.date<t) return;
+    ev.push(['BEGIN:VEVENT','UID:gig-'+g.id+'@notorious-dad','DTSTAMP:'+stamp,
+      'DTSTART;VALUE=DATE:'+icsDate(g.date),'DTEND;VALUE=DATE:'+icsDate(iso(addDays(g.date,1))),
+      'SUMMARY:'+icsEsc('GIG: '+g.name),'END:VEVENT']);
+  });
+  if(!ev.length) return '';
+  var lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Notorious D.A.D.//Practice Room//EN','CALSCALE:GREGORIAN',
+             'X-WR-CALNAME:'+icsEsc(S.band||'Band')];
+  ev.forEach(function(e){ lines=lines.concat(e); });
+  lines.push('END:VCALENDAR');
+  return lines.map(icsFold).join('\r\n')+'\r\n';
+}
+function exportCalendar(){
+  var ics=buildICS();
+  if(!ics){ toast('Nothing booked yet'); return; }
+  var base=String(S.band||'band').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'band';
+  var fname=base+'-calendar.ics';
+  try{
+    var blob=new Blob([ics],{type:'text/calendar'});
+    var touch=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
+    var file=(touch&&window.File)?new File([blob],fname,{type:'text/calendar'}):null;
+    if(file && navigator.canShare && navigator.canShare({files:[file]})){      // phones: straight to "Add to Calendar"
+      navigator.share({files:[file],title:(S.band||'Band')+' calendar'}).catch(function(){});
+      return;
+    }
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+    toast('Calendar file saved');
+  }catch(e){ toast('Could not make the calendar file'); }
+}
+
 /* ---------- SUGGESTED PRACTICES ---------- */
 /* For every upcoming gig that is short of its practice target, propose the
    best free nights before it: one slot per day, fullest band first. */
@@ -1798,7 +1864,8 @@ document.addEventListener('click',function(e){
   var t=e.target.closest?e.target:null; if(!t) return;
   var b=t.closest('[data-del-gig]');  if(b){ delGig(b.getAttribute('data-del-gig')); return; }
   b=t.closest('[data-lock-key]');     if(b){ toggleLock(b.getAttribute('data-lock-key')); return; }
-  b=t.closest('[data-lock-gig]');     if(b){ lockSuggested(b.getAttribute('data-lock-gig')); }
+  b=t.closest('[data-lock-gig]');     if(b){ lockSuggested(b.getAttribute('data-lock-gig')); return; }
+  b=t.closest('[data-ics]');          if(b){ exportCalendar(); }
 });
 window.addEventListener('hashchange',function(){
   var k=handleHash();
