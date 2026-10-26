@@ -94,11 +94,11 @@ header h1{
 header h1 em{font-style:normal;color:var(--acid)}
 header .sub{
   font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;
-  color:var(--smudge);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:var(--smudge);margin-top:3px;line-height:1.4;
 }
 .gear{
   width:40px;height:40px;flex:0 0 auto;background:transparent;
-  border:2px solid var(--smudge);color:var(--paper);font-size:16px;cursor:pointer;
+  border:2px solid var(--smudge);color:var(--paper);font-size:22px;line-height:1;cursor:pointer;
 }
 .gear:active{background:var(--acid);color:var(--ink)}
 
@@ -386,7 +386,7 @@ nav button.on i{transform:rotate(-6deg)}
     <h1 id="hBand">Notorious <em>D.A.D.</em></h1>
     <div class="sub" id="hSub">loading</div>
   </div>
-  <button class="gear" onclick="go('setup')" aria-label="Settings">✕</button>
+  <button class="gear" onclick="go('setup')" aria-label="Settings">⚙</button>
 </header>
 <div class="ticker"><div id="tick">· LOADING ·</div></div>
 
@@ -625,6 +625,23 @@ function lastGig(){
 /* availability keys are absolute: "2026-09-05|E" */
 function ck(dateISO,slotKey){ return dateISO+'|'+slotKey; }
 
+/* gigs arrive from links and from the shared database, so treat them as untrusted */
+function cleanGigs(a){
+  var list=Array.isArray(a)?a:(a&&typeof a==='object'?Object.keys(a).map(function(k){return a[k];}):[]);
+  var out=[];
+  list.forEach(function(g,i){
+    if(!g||typeof g!=='object') return;
+    var date=String(g.date||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    out.push({
+      id:String(g.id||('g'+i)).replace(/[^\w-]/g,'')||('g'+i),
+      name:String(g.name==null?'':g.name).slice(0,80),
+      date:date,
+      target:Math.min(30,Math.max(0,+g.target||0))
+    });
+  });
+  return out;
+}
 function blank(){
   return {
     v:3,
@@ -650,7 +667,7 @@ function migrate(o){
   o.slots=(o.slots||['M','A','E']).filter(function(k){return SLOT_ORDER.indexOf(k)>-1;});
   if(!o.slots.length) o.slots=['E'];
   o.slots.sort(function(a,b){return SLOT_ORDER.indexOf(a)-SLOT_ORDER.indexOf(b);});
-  if(!o.avail)o.avail={}; if(!o.sub)o.sub={}; if(!o.locked)o.locked={}; if(!o.gigs)o.gigs=[]; if(!o.ts)o.ts={};
+  if(!o.avail)o.avail={}; if(!o.sub)o.sub={}; if(!o.locked)o.locked={}; o.gigs=cleanGigs(o.gigs); if(!o.ts)o.ts={}; if(!o.rev)o.rev=0;
   if(!o.band)o.band='Notorious D.A.D.';
   // a roster that was never filled in gets the real line-up
   if(Array.isArray(o.members) && o.members.length===5 &&
@@ -693,6 +710,8 @@ function load(){
   if(me!==null && (isNaN(me)||me<0||me>=S.members.length)) me=null;
   LIVE.db=store.get(KEYDB)||DEFAULT_DB||'';
   LIVE.id=store.get(KEYID)||'';
+  LIVE.dirty=store.get(KEYDIRTY)==='1';        // taps made offline survive a restart
+  try{ LIVE.lockq=JSON.parse(store.get(KEYLOCKQ)||'{}')||{}; }catch(e){ LIVE.lockq={}; }
 }
 
 /* ============================================================
@@ -970,6 +989,7 @@ function toggleMe(k){
 }
 function bulkMe(on){
   if(me===null){ toast('Pick your name first'); return; }
+  if(!on && Object.keys(S.avail[me]||{}).length && !confirm('Clear all your ticks?')) return;
   S.avail[me]={};
   if(on){ results().forEach(function(x){ if(!x.past) S.avail[me][x.key]=1; }); }
   S.sub[me]=true; save(); liveMineChanged(); paintMe();
@@ -979,11 +999,11 @@ function bulkMe(on){
 function bulkEvenings(){
   if(me===null){ toast('Pick your name first'); return; }
   if(S.slots.indexOf('E')<0){ toast('Evening slot is switched off'); return; }
-  S.avail[me]={};
+  if(!S.avail[me]) S.avail[me]={};
   results().forEach(function(x){ if(!x.past && S.slots[x.t]==='E') S.avail[me][x.key]=1; });
   S.sub[me]=true; save(); liveMineChanged(); paintMe();
   stagger(document.getElementById('meGrid'),'.slot');
-  toast('Every night claimed');
+  toast('Every evening added');
 }
 
 /* ---------- SLOTS ---------- */
@@ -1040,7 +1060,7 @@ function paintSlots(){
 function setFilter(f){ filter=f; paintSlots(); armReveals(); stagger(document.getElementById('slotsList'),'.res'); }
 function toggleLock(k){
   if(S.locked[k]) delete S.locked[k]; else S.locked[k]=1;
-  save(); livePushLocked(); paintSlots(); paintGigs(); paintHeader();
+  save(); livePushLocked(k); paintSlots(); paintGigs(); paintHeader();
   var els=document.querySelectorAll('#slotsList .rv'); for(var i=0;i<els.length;i++) els[i].classList.add('in');
   toast(S.locked[k]?'Locked in 🥁':'Dropped');
 }
@@ -1060,7 +1080,7 @@ function paintGigs(){
                         : '⚠ '+booked+' of '+target+' practices booked');
     return '<div class="gig"><div class="cd"><b>'+(dd<0?'—':dd)+'</b><span>'+(dd<0?'PAST':'DAYS')+'</span></div>'+
       '<div class="gi"><b>'+esc(g.name)+'</b><span>'+fmtDay(parseISO(g.date))+' · '+esc(status)+'</span></div>'+
-      '<button class="x" onclick="delGig(\''+g.id+'\')">✕</button></div>';
+      '<button class="x" data-del-gig="'+esc(g.id)+'" aria-label="Remove gig">✕</button></div>';
   }).join('') : '<div class="blank"><b>No gigs booked</b>Add one and every slot starts counting down to it.</div>';
 
   var up=results().filter(function(x){ return x.locked && !x.past; }).sort(function(a,b){ return a.d-b.d||a.t-b.t; });
@@ -1268,6 +1288,7 @@ function addMember(){
 function removeMember(i){
   if(!confirm('Drop '+name(i)+' from the line-up?\n\nTheir availability goes with them. Everyone else keeps theirs.')) return;
   S.members.splice(i,1);
+  S.rev=(S.rev||0)+1;
   // availability is keyed by member index, so shift everyone above down one
   var av={}, sub={}, ts={};
   for(var m=0;m<S.members.length+1;m++){
@@ -1301,7 +1322,7 @@ function resetAll(){
   liveDisconnect();
   store.del(KEY); store.del(KEYME); store.del('bandPracticeFinder.v1');
   store.del(KEYDB); store.del(KEYID);
-  LIVE.db=DEFAULT_DB||''; LIVE.id=''; LIVE.tree={}; setStatus('off');
+  LIVE.db=DEFAULT_DB||''; LIVE.id=''; LIVE.tree={}; LIVE.dirty=false; LIVE.lockq={}; persistLive(); setStatus('off');
   S=blank(); me=null; save(); go('setup');
 }
 
@@ -1365,9 +1386,14 @@ var DEFAULT_DB='https://notorious-dad-default-rtdb.firebaseio.com';   /* Paddy's
 var LIVE={
   db:'', id:'', on:false, es:null, tree:{},
   status:'off',             /* off | connecting | live | offline | error */
-  dirty:false, timer:null, retry:null, backoff:1000
+  dirty:false, ver:0, synced:false, timer:null, retry:null, backoff:1000,
+  lockq:{}, lockTimer:null     /* pins/unpins not yet confirmed by the server */
 };
-var KEYDB=KEY+'.db', KEYID=KEY+'.id';
+var KEYDB=KEY+'.db', KEYID=KEY+'.id', KEYDIRTY=KEY+'.dirty', KEYLOCKQ=KEY+'.lockq';
+function persistLive(){
+  if(LIVE.dirty) store.set(KEYDIRTY,'1'); else store.del(KEYDIRTY);
+  if(Object.keys(LIVE.lockq).length) store.set(KEYLOCKQ,JSON.stringify(LIVE.lockq)); else store.del(KEYLOCKQ);
+}
 
 function liveConfigured(){ return !!(LIVE.db && LIVE.id); }
 function liveBase(){ return String(LIVE.db).replace(/\/+$/,''); }
@@ -1384,7 +1410,7 @@ function liveConnect(){
   if(!liveConfigured()) return;
   if(String(location.protocol).indexOf('http')!==0){ setStatus('error'); return; }
   liveDisconnect();
-  LIVE.on=true; setStatus('connecting');
+  LIVE.on=true; LIVE.synced=false; setStatus('connecting');
   if(!('EventSource' in window)){ livePoll(); return; }
   try{
     var es=new EventSource(liveUrl('')); LIVE.es=es;
@@ -1408,6 +1434,7 @@ function liveDisconnect(keepOn){
 function liveGoOffline(){
   liveDisconnect(); LIVE.db=''; LIVE.id='';
   store.del(KEYDB); store.del(KEYID);
+  LIVE.dirty=false; LIVE.lockq={}; persistLive();
   setStatus('off'); paint(); toast('Live sync switched off');
 }
 /* fallback for browsers with no EventSource */
@@ -1452,15 +1479,30 @@ function setPath(obj,path,val){
 function adoptTree(){
   var t=LIVE.tree||{}, changed=false;
   var legacyStart=null, legacySlots=null;
+  LIVE.synced=true;
   if(t.meta){
-    var m=t.meta;
+    var m=t.meta, oldMembers=S.members.slice(), oldMe=me;
     S.band   = m.band   || S.band;
     S.members= (m.members&&m.members.length) ? m.members.slice() : S.members;
     S.slots  = (m.slots&&m.slots.length) ? m.slots.slice() : S.slots;
     if(m.weeks) S.weeks=m.weeks;
     if(m.slotDefs) S.slotDefs=m.slotDefs;
-    S.gigs   = m.gigs ? m.gigs.slice() : [];
+    S.gigs   = cleanGigs(m.gigs);
     if(!m.fmt){ legacyStart=m.start||null; legacySlots=(m.slots||[]).slice(); }
+    /* someone dropped a member: indexes shifted, so find myself again by name
+       rather than quietly becoming (and overwriting) somebody else */
+    var newRev=(typeof m.rev==='number')?m.rev:(S.rev||0);
+    if(newRev!==(S.rev||0)){
+      S.rev=newRev;
+      if(oldMe!==null){
+        var nm=oldMembers[oldMe], hits=[];
+        S.members.forEach(function(x,ix){ if(x===nm) hits.push(ix); });
+        var newMe=(nm && hits.length===1)?hits[0]:null;
+        if(newMe!==null && LIVE.dirty && newMe!==oldMe) S.avail[newMe]=S.avail[oldMe];
+        me=newMe;
+        if(me===null){ LIVE.dirty=false; persistLive(); store.del(KEYME); toast('The line-up changed — pick your name again'); }
+      }
+    }
     if(me!==null && me>=S.members.length){ me=null; store.del(KEYME); }
     changed=true;
   }
@@ -1489,6 +1531,10 @@ function adoptTree(){
       else conv[q]=lk[q];
     }
     lk=conv;
+  }
+  else { var copy={}; for(var z in lk) if(Object.prototype.hasOwnProperty.call(lk,z)) copy[z]=lk[z]; lk=copy; }
+  for(var pk in LIVE.lockq) if(Object.prototype.hasOwnProperty.call(LIVE.lockq,pk)){   // my unsent pins still count
+    if(LIVE.lockq[pk]) lk[pk]=1; else delete lk[pk];
   }
   S.locked = lk;
   if(changed){ save(); paintSafely(); }
@@ -1520,7 +1566,7 @@ function livePut(path,body){
 function liveMeta(){
   return {fmt:3, band:S.band, members:S.members, weeks:S.weeks||4,
           start:winStart(), days:winDays(),          /* informational only now */
-          slots:S.slots, slotDefs:S.slotDefs, gigs:S.gigs, sig:hash(sig()), ts:Date.now()};
+          slots:S.slots, slotDefs:S.slotDefs, gigs:S.gigs, rev:S.rev||0, sig:hash(sig()), ts:Date.now()};
 }
 /* everyone's slices, for the rare whole-tree write (e.g. dropping a member) */
 function liveAvailPayload(){
@@ -1546,17 +1592,22 @@ function livePublishMeta(alsoWipe){
 /* my own taps: mark dirty, then push once the tapping stops */
 function liveMineChanged(){
   if(!liveConfigured()||me===null) return;
-  LIVE.dirty=true;
+  LIVE.dirty=true; LIVE.ver++; persistLive();
   clearTimeout(LIVE.timer);
   LIVE.timer=setTimeout(livePushMine,700);
 }
 function livePushMine(){
   if(!liveConfigured()||me===null) return Promise.resolve();
+  if(!LIVE.synced){                      // never push before we know the current line-up
+    clearTimeout(LIVE.timer); LIVE.timer=setTimeout(livePushMine,800); return Promise.resolve();
+  }
   setStatus('connecting');
-  return livePut('avail/'+me, {cells:wireCells(me), ts:Date.now(), name:name(me)})
+  var sent=LIVE.ver, who=me;
+  return livePut('avail/'+who, {cells:wireCells(who), ts:Date.now(), name:name(who)})
     .then(function(){
-      LIVE.dirty=false; setStatus('live');
-      if(!S.ts) S.ts={}; S.ts[me]=Date.now(); save();
+      if(sent===LIVE.ver){ LIVE.dirty=false; persistLive(); }
+      setStatus('live');
+      if(!S.ts) S.ts={}; S.ts[who]=Date.now(); save();
     })
     .catch(function(){
       setStatus('offline');
@@ -1564,9 +1615,25 @@ function livePushMine(){
       LIVE.timer=setTimeout(livePushMine,5000);   // keep trying until it lands
     });
 }
-function livePushLocked(){
-  if(!liveConfigured()) return Promise.resolve();
-  return livePut('locked', Object.keys(S.locked).length?S.locked:null).catch(function(){});
+/* One write per pinned night, so two people pinning at once can't erase each
+   other, and anything that fails stays queued (and saved) until it lands. */
+function livePushLocked(k){
+  if(k!==undefined){ LIVE.lockq[k]=S.locked[k]?1:0; persistLive(); }
+  liveFlushLocks();
+}
+function liveFlushLocks(){
+  clearTimeout(LIVE.lockTimer);
+  if(!liveConfigured()) return;
+  var keys=Object.keys(LIVE.lockq);
+  if(!keys.length) return;
+  keys.forEach(function(k){
+    var want=LIVE.lockq[k];
+    livePut('locked/'+encodeURIComponent(k), want?1:null).then(function(){
+      if(LIVE.lockq[k]===want){ delete LIVE.lockq[k]; persistLive(); }
+    }).catch(function(){
+      clearTimeout(LIVE.lockTimer); LIVE.lockTimer=setTimeout(liveFlushLocks,5000);
+    });
+  });
 }
 
 /* ---- going live for the first time ---- */
@@ -1586,7 +1653,7 @@ function goLive(){
   livePut('', {meta:liveMeta()})
     .then(function(){
       liveConnect();
-      if(me!==null && S.sub[me]) livePushMine();
+      if(me!==null && S.sub[me]){ LIVE.dirty=true; LIVE.ver++; persistLive(); livePushMine(); }   // ticks made before going live are unsent
       paint(); go('share');
       toast('You are live — send the link');
     })
@@ -1626,7 +1693,7 @@ function ago(ts){
   var h=Math.floor(m/60); if(h<36) return h+'h ago';
   return Math.floor(h/24)+'d ago';
 }
-window.addEventListener('online', function(){ if(liveConfigured()){ liveConnect(); if(LIVE.dirty) livePushMine(); } });
+window.addEventListener('online', function(){ if(liveConfigured()){ liveConnect(); if(LIVE.dirty) livePushMine(); liveFlushLocks(); } });
 window.addEventListener('offline',function(){ if(LIVE.on) setStatus('offline'); });
 
 /* Home-screen nudge. Only when served over http(s), only in a browser tab,
@@ -1656,6 +1723,10 @@ function toast(msg){
   el.textContent=msg; el.classList.add('show');
   clearTimeout(tt); tt=setTimeout(function(){ el.classList.remove('show'); },2300);
 }
+document.addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-del-gig]');
+  if(b) delGig(b.getAttribute('data-del-gig'));
+});
 window.addEventListener('hashchange',function(){
   var k=handleHash();
   if(k==='live'){ go('me'); toast('Joined the band'); }
@@ -1674,7 +1745,7 @@ var start = (inbound==='setup'||inbound==='live') ? 'me'
 go(start);
 
 /* if this phone already knows a band, reconnect on every open */
-if(liveConfigured() && String(location.protocol).indexOf('http')===0) liveConnect();
+if(liveConfigured() && String(location.protocol).indexOf('http')===0){ liveConnect(); if(LIVE.dirty) livePushMine(); liveFlushLocks(); }
 
 setTimeout(function(){
   var sp=document.getElementById('splash');
