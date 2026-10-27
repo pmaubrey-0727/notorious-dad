@@ -1,0 +1,22 @@
+# Paste this file into GitHub at:  .github/workflows/who-hasnt-ticked.yml
+# (see reminders/README.md for the three secrets it needs)
+name: Who hasn't ticked
+
+on:
+  schedule:
+    - cron: '0 8 * * *'      # every day at 08:00 UTC (08:00 in winter, 09:00 in Irish summer time)
+  workflow_dispatch:         # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node reminders/waiting.mjs
+        env:
+          FIREBASE_DB: ${{ secrets.FIREBASE_DB }}
+          BAND_ID: ${{ secrets.BAND_ID }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
